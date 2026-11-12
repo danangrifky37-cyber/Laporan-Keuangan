@@ -53,17 +53,43 @@
     /* Toast */
     .toast {
       position: fixed;
-      bottom: 16px;
+      top: 16px;
       right: 16px;
-      z-index: 60;
+      z-index: 70;
       max-width: 360px;
       border-radius: var(--radius-md);
-      background: var(--text-strong);
-      color: #ffffff;
+      background: #0f172a;
+      color: #f8fafc;
+      border: 1px solid #10b981;
       padding: 12px 16px;
       font-size: 0.875rem;
       font-weight: 500;
-      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.2);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+    }
+
+    /* Floating Quick Input Button */
+    .fab-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 45;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: none;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #10b981, #0ea5e9);
+      color: #ffffff;
+      padding: 13px 20px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 10px 26px rgba(16, 185, 129, 0.4);
+      transition: transform 0.15s;
+    }
+
+    .fab-btn:hover {
+      transform: translateY(-2px);
     }
 
     /* Modal */
@@ -391,7 +417,7 @@
 
     @media (min-width: 1024px) {
       .workspace-grid {
-        grid-template-columns: 5fr 7fr;
+        grid-template-columns: 7fr 5fr;
         align-items: start;
       }
     }
@@ -575,9 +601,14 @@
       align-items: center;
     }
 
-    #expense-chart {
+    .chart-scroll {
       width: 100%;
-      max-width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 4px;
+    }
+
+    #expense-chart {
       display: block;
     }
 
@@ -849,6 +880,77 @@
   <!-- Toast Notifikasi -->
   <div id="toast" class="toast hidden"></div>
 
+  <!-- Modal Pop-Up Input Data Real Harian -->
+  <div id="entry-modal" class="modal-backdrop hidden">
+    <div class="modal-card" style="max-width: 460px; max-height: 92vh; overflow-y: auto;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <div>
+          <h3 class="modal-title">Input Data Real Harian</h3>
+          <p class="modal-desc" style="margin-top:2px;">Catat pemasukan atau pengeluaran cepat.</p>
+        </div>
+        <button id="entry-modal-close" type="button" class="btn btn-sm">Tutup</button>
+      </div>
+      <form id="entry-form" class="form-stack">
+        <div class="toggle-group">
+          <button type="button" data-type="expense" class="type-toggle active-expense">Pengeluaran / Pos</button>
+          <button type="button" data-type="income" class="type-toggle">Pemasukan</button>
+        </div>
+        <input type="hidden" id="entry-type" value="expense" />
+
+        <div id="no-alloc-prompt" class="info-prompt hidden">
+          <span>Belum ada pos alokasi pengeluaran. Tambah pos dulu agar bisa mencatat pengeluaran harian.</span>
+          <button id="quick-add-alloc-btn" type="button" class="btn btn-sm btn-emerald">+ Tambah Pos</button>
+        </div>
+
+        <div class="form-row-2">
+          <div>
+            <label for="entry-date" class="label">Tanggal</label>
+            <input id="entry-date" type="date" required class="input" />
+          </div>
+          <div>
+            <label for="entry-category" class="label">Pos Alokasi / Kategori</label>
+            <select id="entry-category" required class="select"></select>
+          </div>
+        </div>
+
+        <div id="custom-income-wrap" class="hidden">
+          <label for="entry-custom-income" class="label">Keterangan Pemasukan Lainnya</label>
+          <input id="entry-custom-income" type="text" placeholder="Contoh: Tunjangan, Lembur, Jual Barang" class="input" />
+        </div>
+
+        <!-- Info Sisa Batas -->
+        <div id="category-limit-box" class="limit-box">
+          <div class="limit-box-head">
+            <span>Sisa batas bulan ini:</span>
+            <span id="category-limit-remaining" class="text-emerald">Rp 0</span>
+          </div>
+          <div class="progress-track">
+            <div id="category-limit-bar" class="progress-fill" style="width: 0%; background-color: #10b981;"></div>
+          </div>
+          <p id="category-limit-detail" class="summary-sub" style="margin-top: 6px;"></p>
+        </div>
+
+        <div>
+          <label for="entry-amount" class="label">Nominal Real (Rp)</label>
+          <input id="entry-amount" type="text" inputmode="numeric" placeholder="Contoh: 75.000" required class="input" />
+          <p id="over-limit-warning" class="warning-box hidden"></p>
+        </div>
+
+        <div>
+          <label for="entry-note" class="label">Catatan / Cerita Singkat</label>
+          <textarea id="entry-note" rows="2" placeholder="Misal: Beli sayur, lauk, dan buah untuk makan hari ini" required class="textarea"></textarea>
+        </div>
+
+        <label class="checkbox-row">
+          <input id="strict-limit-toggle" type="checkbox" />
+          <span>Kunci batas alokasi (tolak otomatis jika melebihi sisa)</span>
+        </label>
+
+        <button id="submit-entry-btn" type="submit" class="btn-primary">Simpan Data Real</button>
+      </form>
+    </div>
+  </div>
+
   <!-- Modal Konfirmasi -->
   <div id="confirm-modal" class="modal-backdrop hidden">
     <div class="modal-card">
@@ -944,6 +1046,7 @@
           <div>
             <h1 class="brand-title">Jurnal Keuangan Keluarga</h1>
             <p class="brand-sub">Pantau alokasi pos dana &amp; realisasi harian secara real-time</p>
+            <p id="live-clock" class="summary-sub" style="margin-top: 6px; color: #6ee7b7; font-weight: 600;"></p>
           </div>
         </div>
       </div>
@@ -952,6 +1055,7 @@
         <select id="month-filter" aria-label="Filter bulan" class="select select-auto">
           <option value="all">Semua Bulan</option>
         </select>
+        <button id="header-input-btn" type="button" class="btn btn-emerald">+ Input Harian</button>
         <button id="export-jpg-btn" type="button" class="btn">Unduh Grafik JPG</button>
         <button id="reset-demo-btn" type="button" class="btn">Kosongkan Data</button>
       </div>
@@ -983,107 +1087,29 @@
       </div>
     </section>
 
-    <!-- Konten Utama -->
+    <!-- Konten Utama: Alokasi & Visualisasi Terpadu + Riwayat Jurnal -->
     <div class="workspace-grid">
-      <!-- Kolom Kiri -->
-      <div class="col-stack">
-        <!-- Form Input Harian -->
-        <section class="card">
-          <h2 class="section-title">Input Data Real Harian</h2>
-          <p class="section-sub">Cek otomatis terhadap batas alokasi pos dana.</p>
-
-          <form id="entry-form" class="form-stack">
-            <div class="toggle-group">
-              <button type="button" data-type="expense" class="type-toggle active-expense">Pengeluaran / Pos</button>
-              <button type="button" data-type="income" class="type-toggle">Pemasukan</button>
-            </div>
-            <input type="hidden" id="entry-type" value="expense" />
-
-            <div id="no-alloc-prompt" class="info-prompt hidden">
-              <span>Belum ada pos alokasi pengeluaran. Tambah pos dulu agar bisa mencatat pengeluaran harian.</span>
-              <button id="quick-add-alloc-btn" type="button" class="btn btn-sm btn-emerald">+ Tambah Pos</button>
-            </div>
-
-            <div class="form-row-2">
-              <div>
-                <label for="entry-date" class="label">Tanggal</label>
-                <input id="entry-date" type="date" required class="input" />
-              </div>
-              <div>
-                <label for="entry-category" class="label">Pos Alokasi / Kategori</label>
-                <select id="entry-category" required class="select"></select>
-              </div>
-            </div>
-
-            <!-- Info Sisa Batas -->
-            <div id="category-limit-box" class="limit-box">
-              <div class="limit-box-head">
-                <span>Sisa batas bulan ini:</span>
-                <span id="category-limit-remaining" class="text-emerald">Rp 0</span>
-              </div>
-              <div class="progress-track">
-                <div id="category-limit-bar" class="progress-fill" style="width: 0%; background-color: #10b981;"></div>
-              </div>
-              <p id="category-limit-detail" class="summary-sub" style="margin-top: 6px;"></p>
-            </div>
-
-            <div>
-              <label for="entry-amount" class="label">Nominal Real (Rp)</label>
-              <input id="entry-amount" type="text" inputmode="numeric" placeholder="Contoh: 75.000" required class="input" />
-              <p id="over-limit-warning" class="warning-box hidden"></p>
-            </div>
-
-            <div>
-              <label for="entry-note" class="label">Catatan / Cerita Singkat</label>
-              <textarea id="entry-note" rows="2" placeholder="Misal: Beli sayur, lauk, dan buah untuk makan hari ini" required class="textarea"></textarea>
-            </div>
-
-            <label class="checkbox-row">
-              <input id="strict-limit-toggle" type="checkbox" />
-              <span>Kunci batas alokasi (tolak otomatis jika melebihi sisa)</span>
-            </label>
-
-            <button id="submit-entry-btn" type="submit" class="btn-primary">Simpan Data Real</button>
-          </form>
-        </section>
-
-        <!-- Grafik Donut Offline (Native Canvas) -->
-        <section class="card">
-          <div class="chart-header">
-            <h2 class="section-title">Visualisasi Pos Dana</h2>
+      <!-- Kolom Kiri: Alokasi, Batas & Visualisasi Pos Dana (Terpadu) -->
+      <section class="card">
+        <div class="section-head-border">
+          <div>
+            <h2 class="section-title">Alokasi, Batas &amp; Visualisasi Pos Dana</h2>
+            <p class="section-sub">Diagram batang realisasi vs batas alokasi per pos (bisa edit &amp; hapus langsung).</p>
+          </div>
+          <div class="head-actions">
+            <span id="allocation-period-badge" class="period-badge">Bulan Terpilih</span>
             <div class="chart-tabs">
               <button type="button" data-chart-mode="real" class="chart-mode-btn active">Realisasi</button>
-              <button type="button" data-chart-mode="target" class="chart-mode-btn">Target Alokasi</button>
+              <button type="button" data-chart-mode="target" class="chart-mode-btn">Target</button>
             </div>
+            <button id="add-alloc-btn" type="button" class="btn btn-sm btn-emerald">+ Tambah Pos</button>
           </div>
-          <div class="chart-wrap">
-            <canvas id="expense-chart" width="230" height="230"></canvas>
-            <div id="chart-tooltip" class="chart-tooltip"></div>
-            <div id="chart-legend" class="chart-legend"></div>
-          </div>
-          <p id="chart-empty" class="section-sub hidden" style="text-align: center; margin-top: 12px;">Belum ada data untuk ditampilkan pada grafik.</p>
-        </section>
-      </div>
+        </div>
+        <div id="allocation-grid" class="allocation-grid"></div>
+      </section>
 
-      <!-- Kolom Kanan -->
-      <div class="col-stack">
-        <!-- Monitoring Pos Dana -->
-        <section class="card">
-          <div class="section-head-border">
-            <div>
-              <h2 class="section-title">Alokasi &amp; Batas Pos Dana</h2>
-              <p class="section-sub">Tambahkan pos sesuai kebutuhan keluarga dan pantau batasnya.</p>
-            </div>
-            <div class="head-actions">
-              <span id="allocation-period-badge" class="period-badge">Bulan Terpilih</span>
-              <button id="add-alloc-btn" type="button" class="btn btn-sm btn-emerald">+ Tambah Pos</button>
-            </div>
-          </div>
-          <div id="allocation-grid" class="allocation-grid"></div>
-        </section>
-
-        <!-- Riwayat Jurnal Harian -->
-        <section class="card">
+      <!-- Kolom Kanan: Riwayat Jurnal Harian -->
+      <section class="card">
           <div class="section-head-border">
             <div>
               <h2 class="section-title">Riwayat Jurnal Harian</h2>
@@ -1099,10 +1125,12 @@
             </div>
           </div>
           <div id="journal-list" class="journal-list"></div>
-        </section>
-      </div>
+      </section>
     </div>
   </main>
+
+  <!-- Tombol Mengambang Input Cepat -->
+  <button id="fab-input-btn" type="button" class="fab-btn">+ Input Harian</button>
   </div>
 
   <script type="module">
@@ -1173,6 +1201,9 @@
     const entryTypeInput = document.getElementById('entry-type');
     const entryDateInput = document.getElementById('entry-date');
     const entryCategorySelect = document.getElementById('entry-category');
+    const customIncomeWrap = document.getElementById('custom-income-wrap');
+    const entryCustomIncomeInput = document.getElementById('entry-custom-income');
+    const liveClockEl = document.getElementById('live-clock');
     const entryAmountInput = document.getElementById('entry-amount');
     const entryNoteInput = document.getElementById('entry-note');
     const strictLimitToggle = document.getElementById('strict-limit-toggle');
@@ -1224,10 +1255,11 @@
     const budgetModalInput = document.getElementById('budget-modal-input');
     const budgetModalCancel = document.getElementById('budget-modal-cancel');
 
+    const entryModal = document.getElementById('entry-modal');
+    const entryModalClose = document.getElementById('entry-modal-close');
+    const headerInputBtn = document.getElementById('header-input-btn');
+    const fabInputBtn = document.getElementById('fab-input-btn');
     const chartModeBtns = document.querySelectorAll('.chart-mode-btn');
-    const chartCanvas = document.getElementById('expense-chart');
-    const chartTooltip = document.getElementById('chart-tooltip');
-    const chartLegend = document.getElementById('chart-legend');
 
     const syncBadge = document.getElementById('sync-badge');
     const toastEl = document.getElementById('toast');
@@ -1341,6 +1373,29 @@
       return `${BULAN_PENUH[Number(m) - 1] || m} ${y}`;
     }
 
+    function getTodayIso() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function formatDateTimeIndo(dateObj) {
+      const d = dateObj instanceof Date ? dateObj : new Date(dateObj);
+      if (isNaN(d.getTime())) return '';
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      const ss = String(d.getSeconds()).padStart(2, '0');
+      return `${HARI[d.getDay()]}, ${d.getDate()} ${BULAN[d.getMonth()]} ${d.getFullYear()} • ${hh}:${mm}:${ss}`;
+    }
+
+    function updateLiveClock() {
+      if (liveClockEl) {
+        liveClockEl.textContent = `🕒 ${formatDateTimeIndo(new Date())}`;
+      }
+    }
+
     function getCategoryMeta(type, categoryId) {
       const list = type === 'income' ? INCOME_CATEGORIES : allocations;
       return list.find((c) => c.id === categoryId) || { id: categoryId, label: categoryId, color: '#64748b', budget: 0 };
@@ -1423,8 +1478,25 @@
       addAllocModal.classList.add('hidden');
     }
 
+    function openEntryModal() {
+      entryDateInput.value = getTodayIso();
+      updateFormLimitPreview();
+      entryModal.classList.remove('hidden');
+      entryAmountInput.focus();
+    }
+
+    function closeEntryModal() {
+      entryModal.classList.add('hidden');
+    }
+
+    headerInputBtn.addEventListener('click', openEntryModal);
+    fabInputBtn.addEventListener('click', openEntryModal);
+    entryModalClose.addEventListener('click', closeEntryModal);
     document.getElementById('add-alloc-btn').addEventListener('click', openAddAllocModal);
-    quickAddAllocBtn.addEventListener('click', openAddAllocModal);
+    quickAddAllocBtn.addEventListener('click', () => {
+      closeEntryModal();
+      openAddAllocModal();
+    });
     addAllocCancel.addEventListener('click', closeAddAllocModal);
 
     addAllocForm.addEventListener('submit', (e) => {
@@ -1564,6 +1636,12 @@
     // Preview sisa batas pada form input harian
     function updateFormLimitPreview() {
       const type = entryTypeInput.value;
+      if (type === 'income' && entryCategorySelect.value === 'Lainnya') {
+        customIncomeWrap.classList.remove('hidden');
+      } else {
+        customIncomeWrap.classList.add('hidden');
+      }
+
       if (type !== 'expense') {
         noAllocPrompt.classList.add('hidden');
         categoryLimitBox.classList.add('hidden');
@@ -1653,8 +1731,9 @@
 
     function updateMonthFilterOptions() {
       const currentVal = monthFilter.value;
+      const currentYm = getTodayIso().slice(0, 7);
       const months = Array.from(new Set(entries.map((e) => e.date.slice(0, 7)))).sort().reverse();
-      if (!months.includes('2026-11')) months.unshift('2026-11');
+      if (!months.includes(currentYm)) months.unshift(currentYm);
       monthFilter.innerHTML = '<option value="all">Semua Bulan</option>';
       months.forEach((ym) => {
         const opt = document.createElement('option');
@@ -1719,7 +1798,13 @@
       summaryExpenseCount.textContent = `${expenseCount} catatan`;
 
       summaryRemainingBudget.textContent = formatRupiah(remainingBudget);
-      summaryRemainingBudget.className = `summary-value ${remainingBudget >= 0 ? 'text-strong' : 'text-rose'}`;
+      let allocColorClass = 'text-strong';
+      if (totalBudget > totalIncome) {
+        allocColorClass = 'text-rose';
+      } else if (totalIncome > totalBudget) {
+        allocColorClass = 'text-emerald';
+      }
+      summaryRemainingBudget.className = `summary-value ${allocColorClass}`;
       summaryBudgetTotal.textContent = `Dari target ${formatRupiah(totalBudget)}`;
 
       summaryBalance.textContent = formatRupiah(balance);
@@ -1727,7 +1812,6 @@
       summarySavingsRate.textContent = `${savingsRate}% tersisa dari masuk`;
 
       renderAllocationGrid(periodEntries);
-      renderChart(periodEntries);
       renderList();
       updateFormLimitPreview();
     }
@@ -1753,24 +1837,36 @@
         return;
       }
 
+      const maxTarget = Math.max(...allocations.map((a) => a.budget), 1);
+
       allocations.forEach((cat) => {
         const budget = cat.budget;
         const spent = spentMap[cat.id] || 0;
         const remaining = budget - spent;
         const rawPct = budget > 0 ? Math.round((spent / budget) * 100) : 0;
-        const barPct = Math.min(100, rawPct);
+        const barPct = chartMode === 'target'
+          ? Math.round((budget / maxTarget) * 100)
+          : Math.min(100, rawPct);
 
         let statusText = 'Aman';
         let pillClass = 'pill-safe';
         let barColor = cat.color;
 
-        if (spent > budget) {
-          statusText = 'Melebihi Batas';
+        if (chartMode === 'target') {
+          const sharePct = getTotalMonthlyBudget() > 0
+            ? Math.round((budget / getTotalMonthlyBudget()) * 1000) / 10
+            : 0;
+          statusText = `Porsi ${sharePct}%`;
+          pillClass = 'pill-safe';
+        } else if (spent > budget) {
+          statusText = `Melebihi (${rawPct}%)`;
           pillClass = 'pill-over';
-          barColor = '#e11d48';
+          barColor = '#fb7185';
         } else if (rawPct >= 80 && spent > 0) {
-          statusText = 'Hampir Penuh';
+          statusText = `Hampir Penuh (${rawPct}%)`;
           pillClass = 'pill-warn';
+        } else {
+          statusText = `Aman (${rawPct}%)`;
         }
 
         const card = document.createElement('div');
@@ -1795,13 +1891,14 @@
 
         const badge = document.createElement('span');
         badge.className = `status-pill ${pillClass}`;
-        badge.textContent = `${statusText} (${rawPct}%)`;
+        badge.textContent = statusText;
 
         top.appendChild(titleWrap);
         top.appendChild(badge);
 
         const barWrap = document.createElement('div');
         barWrap.className = 'progress-track';
+        barWrap.style.height = '10px';
         const barFill = document.createElement('div');
         barFill.className = 'progress-fill';
         barFill.style.width = `${barPct}%`;
@@ -1870,126 +1967,18 @@
       });
     }
 
-    // Grafik Batang Horizontal Native Canvas
-    function renderChart(periodEntries) {
-      const emptyEl = document.getElementById('chart-empty');
-      let items = [];
-
-      if (chartMode === 'target') {
-        allocations.forEach((cat) => {
-          if (cat.budget > 0) {
-            items.push({ label: cat.label, value: cat.budget, budget: cat.budget, color: cat.color });
-          }
-        });
-      } else {
-        const grouped = {};
-        periodEntries
-          .filter((e) => e.type === 'expense')
-          .forEach((e) => {
-            grouped[e.category] = (grouped[e.category] || 0) + e.amount;
-          });
-        items = Object.keys(grouped).map((k) => ({
-          label: k,
-          value: grouped[k],
-          budget: getCategoryBudget(k),
-          color: getCategoryMeta('expense', k).color
-        }));
+    function formatCompactRp(num) {
+      if (num >= 1000000) {
+        const val = num / 1000000;
+        return (Number.isInteger(val) ? val : val.toFixed(1).replace('.', ',')) + ' jt';
       }
-
-      items.sort((a, b) => b.value - a.value);
-      chartLegend.innerHTML = '';
-      chartTooltip.textContent = '';
-
-      if (items.length === 0) {
-        chartCanvas.classList.add('hidden');
-        emptyEl.classList.remove('hidden');
-        chartSlices = [];
-        return;
+      if (num >= 1000) {
+        return Math.round(num / 1000) + ' rb';
       }
-
-      chartCanvas.classList.remove('hidden');
-      emptyEl.classList.add('hidden');
-
-      const total = items.reduce((s, it) => s + it.value, 0);
-      const maxVal = Math.max(...items.map((it) => Math.max(it.value, chartMode === 'real' ? it.budget : 0)), 1);
-      const containerW = Math.max(300, chartCanvas.parentElement.clientWidth || 380);
-      const rowH = 34;
-      const topPad = 8;
-      const height = topPad + items.length * rowH + 8;
-
-      const dpr = window.devicePixelRatio || 1;
-      chartCanvas.width = containerW * dpr;
-      chartCanvas.height = height * dpr;
-      chartCanvas.style.height = `${height}px`;
-
-      const ctx = chartCanvas.getContext('2d');
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, containerW, height);
-
-      const labelW = Math.min(105, Math.round(containerW * 0.28));
-      const valW = 92;
-      const barX = labelW + 8;
-      const maxBarW = Math.max(60, containerW - barX - valW - 8);
-      chartSlices = [];
-
-      items.forEach((it, idx) => {
-        const y = topPad + idx * rowH;
-
-        // Nama pos
-        ctx.fillStyle = '#e2e8f0';
-        ctx.font = '500 12px system-ui, sans-serif';
-        ctx.textAlign = 'left';
-        const shortName = it.label.length > 13 ? it.label.slice(0, 12) + '…' : it.label;
-        ctx.fillText(shortName, 0, y + 17);
-
-        // Track batas jika mode realisasi
-        if (chartMode === 'real' && it.budget > 0) {
-          const bW = Math.max(4, (it.budget / maxVal) * maxBarW);
-          ctx.fillStyle = '#1e293b';
-          ctx.fillRect(barX, y + 5, bW, 16);
-        }
-
-        // Batang utama
-        const barW = Math.max(4, (it.value / maxVal) * maxBarW);
-        ctx.fillStyle = chartMode === 'real' && it.budget > 0 && it.value > it.budget ? '#fb7185' : it.color;
-        ctx.beginPath();
-        if (ctx.roundRect) {
-          ctx.roundRect(barX, y + 6, barW, 14, 4);
-          ctx.fill();
-        } else {
-          ctx.fillRect(barX, y + 6, barW, 14);
-        }
-
-        // Nilai Rupiah di kanan
-        ctx.fillStyle = '#f8fafc';
-        ctx.font = '600 11px system-ui, sans-serif';
-        ctx.textAlign = 'right';
-        ctx.fillText(formatRupiah(it.value), containerW, y + 17);
-
-        chartSlices.push({
-          ...it,
-          pct: total > 0 ? Math.round((it.value / total) * 1000) / 10 : 0,
-          yTop: y,
-          yBottom: y + rowH
-        });
-      });
+      return String(num);
     }
 
-    function handleChartPointer(clientX, clientY) {
-      if (chartSlices.length === 0) return;
-      const rect = chartCanvas.getBoundingClientRect();
-      const y = clientY - rect.top;
-      const hit = chartSlices.find((s) => y >= s.yTop && y <= s.yBottom);
-      if (hit) {
-        chartTooltip.textContent = `${hit.label}: ${formatRupiah(hit.value)} (${hit.pct}%)`;
-      } else {
-        chartTooltip.textContent = '';
-      }
-    }
 
-    chartCanvas.addEventListener('mousemove', (e) => handleChartPointer(e.clientX, e.clientY));
-    chartCanvas.addEventListener('mouseleave', () => { chartTooltip.textContent = ''; });
-    chartCanvas.addEventListener('click', (e) => handleChartPointer(e.clientX, e.clientY));
 
     function renderList() {
       const filtered = getFilteredEntries(false);
@@ -2037,6 +2026,13 @@
 
         left.appendChild(topRow);
         left.appendChild(noteP);
+        if (item.inputStamp) {
+          const stampP = document.createElement('p');
+          stampP.className = 'summary-sub';
+          stampP.style.marginTop = '4px';
+          stampP.textContent = `Diinput: ${item.inputStamp}`;
+          left.appendChild(stampP);
+        }
 
         const right = document.createElement('div');
         right.className = 'journal-right';
@@ -2072,6 +2068,8 @@
       saveEntries();
       entryAmountInput.value = '';
       entryNoteInput.value = '';
+      entryCustomIncomeInput.value = '';
+      closeEntryModal();
       renderAll();
       showToast('Data real berhasil disimpan ke jurnal!');
     }
@@ -2082,7 +2080,12 @@
       const note = entryNoteInput.value.trim();
       const date = entryDateInput.value;
       const type = entryTypeInput.value;
-      const category = entryCategorySelect.value;
+      let category = entryCategorySelect.value;
+
+      if (type === 'income' && category === 'Lainnya') {
+        const customCat = entryCustomIncomeInput.value.trim();
+        if (customCat) category = customCat;
+      }
 
       if (!date || !category || !note || !Number.isFinite(amount) || amount <= 0) {
         showToast('Mohon lengkapi semua kolom dengan benar.');
@@ -2095,7 +2098,8 @@
         type,
         category,
         amount,
-        note
+        note,
+        inputStamp: formatDateTimeIndo(new Date())
       };
 
       if (type === 'expense') {
@@ -2133,7 +2137,7 @@
         chartModeBtns.forEach((b) => {
           b.classList.toggle('active', b.dataset.chartMode === chartMode);
         });
-        renderChart(getFilteredEntries(true));
+        renderAllocationGrid(getFilteredEntries(true));
       });
     });
 
@@ -2211,11 +2215,9 @@
       canvas.height = height;
       const ctx = canvas.getContext('2d');
 
-      // Background gelap modern untuk JPG
       ctx.fillStyle = '#0b1120';
       ctx.fillRect(0, 0, width, height);
 
-      // Header
       const periodTitle = period === 'all' ? 'Semua Bulan' : formatMonthLabel(period);
       ctx.fillStyle = '#f8fafc';
       ctx.font = 'bold 26px system-ui, -apple-system, sans-serif';
@@ -2229,7 +2231,6 @@
         80
       );
 
-      // Garis pemisah
       ctx.strokeStyle = '#263248';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
@@ -2238,7 +2239,7 @@
       ctx.stroke();
 
       if (bars.length === 0) {
-        ctx.fillStyle = '#64748b';
+        ctx.fillStyle = '#94a3b8';
         ctx.font = '18px system-ui, -apple-system, sans-serif';
         ctx.fillText('Belum ada data pengeluaran atau pos alokasi pada periode ini.', 40, 160);
       } else {
@@ -2250,13 +2251,11 @@
         bars.forEach((b, idx) => {
           const y = topPad + idx * rowH;
 
-          // Nama Pos
           ctx.fillStyle = '#e2e8f0';
           ctx.font = '600 15px system-ui, -apple-system, sans-serif';
           const shortName = b.label.length > 20 ? b.label.slice(0, 19) + '…' : b.label;
           ctx.fillText(shortName, labelX, y + 18);
 
-          // Track batas alokasi (jika ada)
           if (b.budget > 0) {
             const budgetW = Math.max(4, (b.budget / maxVal) * maxBarW);
             ctx.fillStyle = '#1e293b';
@@ -2266,14 +2265,12 @@
             ctx.strokeRect(barX, y + 2, budgetW, 22);
           }
 
-          // Batang realisasi pengeluaran
           if (b.spent > 0) {
             const spentW = Math.max(6, (b.spent / maxVal) * maxBarW);
-            ctx.fillStyle = b.budget > 0 && b.spent > b.budget ? '#e11d48' : b.color;
+            ctx.fillStyle = b.budget > 0 && b.spent > b.budget ? '#fb7185' : b.color;
             ctx.fillRect(barX, y + 5, spentW, 16);
           }
 
-          // Label nominal
           ctx.fillStyle = '#f8fafc';
           ctx.font = '600 14px system-ui, -apple-system, sans-serif';
           const valText = b.budget > 0
@@ -2283,7 +2280,6 @@
         });
       }
 
-      // Footer keterangan kecil
       ctx.fillStyle = '#94a3b8';
       ctx.font = '12px system-ui, -apple-system, sans-serif';
       ctx.fillText('Keterangan: Batang berwarna = Realisasi   |   Kotak abu-abu = Batas Alokasi', 40, height - 18);
@@ -2324,8 +2320,10 @@
     attachThousandsFormatter(entryAmountInput);
     attachThousandsFormatter(budgetModalInput);
     attachThousandsFormatter(newAllocBudgetInput);
-    entryDateInput.value = '2026-11-12';
-    monthFilter.value = '2026-11';
+    entryDateInput.value = getTodayIso();
+    monthFilter.value = getTodayIso().slice(0, 7);
+    updateLiveClock();
+    setInterval(updateLiveClock, 1000);
     renderAll();
   </script>
 </body>
