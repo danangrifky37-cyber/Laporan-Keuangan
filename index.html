@@ -6,23 +6,23 @@
   <title>Jurnal Keuangan Keluarga — Sinkron Cloud</title>
   <style>
     :root {
-      --bg: #f8fafc;
-      --surface: #ffffff;
-      --surface-soft: #f1f5f9;
-      --border: #e2e8f0;
-      --border-soft: #f1f5f9;
-      --text: #1e293b;
-      --text-strong: #0f172a;
-      --text-muted: #64748b;
-      --emerald: #059669;
-      --emerald-hover: #047857;
-      --emerald-soft: #ecfdf5;
-      --rose: #e11d48;
-      --rose-hover: #be123c;
-      --rose-soft: #fff1f2;
-      --amber: #d97706;
-      --amber-soft: #fffbeb;
-      --sky: #0284c7;
+      --bg: #070b14;
+      --surface: #111827;
+      --surface-soft: #1e293b;
+      --border: #263248;
+      --border-soft: #1e293b;
+      --text: #e2e8f0;
+      --text-strong: #f8fafc;
+      --text-muted: #94a3b8;
+      --emerald: #10b981;
+      --emerald-hover: #059669;
+      --emerald-soft: rgba(16, 185, 129, 0.16);
+      --rose: #fb7185;
+      --rose-hover: #e11d48;
+      --rose-soft: rgba(251, 113, 133, 0.16);
+      --amber: #fbbf24;
+      --amber-soft: rgba(251, 191, 36, 0.16);
+      --sky: #38bdf8;
       --radius-lg: 16px;
       --radius-md: 12px;
       --radius-sm: 8px;
@@ -35,7 +35,7 @@
     body {
       margin: 0;
       font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      background-color: var(--bg);
+      background: radial-gradient(circle at top left, #131c31 0%, #070b14 55%, #050811 100%);
       color: var(--text);
       min-height: 100vh;
       line-height: 1.5;
@@ -142,7 +142,7 @@
       width: 36px;
       height: 36px;
       border-radius: var(--radius-md);
-      background: #d1fae5;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(56, 189, 248, 0.25)); border: 1px solid rgba(16, 185, 129, 0.35);
       font-size: 1.125rem;
     }
 
@@ -196,8 +196,9 @@
       width: 100%;
       border: none;
       border-radius: var(--radius-md);
-      background: var(--emerald);
+      background: linear-gradient(135deg, #10b981, #0ea5e9);
       color: #ffffff;
+      box-shadow: 0 6px 18px rgba(16, 185, 129, 0.28);
       padding: 10px 16px;
       font-size: 0.875rem;
       font-weight: 600;
@@ -258,7 +259,7 @@
       display: block;
       font-size: 0.75rem;
       font-weight: 600;
-      color: #334155;
+      color: #cbd5e1;
       margin-bottom: 4px;
     }
 
@@ -308,9 +309,9 @@
     .card {
       border-radius: var(--radius-lg);
       border: 1px solid var(--border);
-      background: var(--surface);
+      background: rgba(17, 24, 39, 0.92);
       padding: 20px;
-      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     }
 
     .summary-label {
@@ -470,8 +471,8 @@
 
     .info-prompt {
       border-radius: var(--radius-md);
-      border: 1px dashed #cbd5e1;
-      background: #f8fafc;
+      border: 1px dashed var(--border);
+      background: var(--surface-soft);
       padding: 12px;
       font-size: 0.8rem;
       color: var(--text-muted);
@@ -615,14 +616,15 @@
 
     .alloc-card {
       border-radius: var(--radius-md);
-      border: 1px solid var(--border-soft);
-      background: #f8fafc;
+      border: 1px solid var(--border);
+      background: #0f172a;
       padding: 14px;
+      transition: border-color 0.15s, transform 0.15s;
     }
 
     .alloc-card:hover {
-      border-color: var(--border);
-      background: var(--surface);
+      border-color: #38bdf8;
+      background: #162033;
     }
 
     .alloc-top {
@@ -685,7 +687,7 @@
       font-weight: 500;
       color: var(--text);
       text-decoration: underline;
-      text-decoration-color: #cbd5e1;
+      text-decoration-color: #475569;
       text-underline-offset: 2px;
       cursor: pointer;
     }
@@ -719,8 +721,8 @@
       justify-content: space-between;
       gap: 12px;
       border-radius: var(--radius-md);
-      border: 1px solid var(--border-soft);
-      background: #f8fafc;
+      border: 1px solid var(--border);
+      background: #0f172a;
       padding: 14px 16px;
     }
 
@@ -732,8 +734,8 @@
     }
 
     .journal-item:hover {
-      border-color: var(--border);
-      background: var(--surface);
+      border-color: #38bdf8;
+      background: #162033;
     }
 
     .journal-meta {
@@ -1818,7 +1820,7 @@
         ctx.fillStyle = it.color;
         ctx.fill();
         ctx.lineWidth = 2;
-        ctx.strokeStyle = '#ffffff';
+        ctx.strokeStyle = '#111827';
         ctx.stroke();
 
         chartSlices.push({
@@ -1840,11 +1842,11 @@
         startAngle = endAngle;
       });
 
-      ctx.fillStyle = '#64748b';
+      ctx.fillStyle = '#94a3b8';
       ctx.font = '600 11px system-ui, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText(chartMode === 'target' ? 'Target' : 'Total', cx, cy - 6);
-      ctx.fillStyle = '#0f172a';
+      ctx.fillStyle = '#f8fafc';
       ctx.font = '700 13px system-ui, sans-serif';
       ctx.fillText(formatRupiah(total), cx, cy + 12);
     }
@@ -2091,18 +2093,18 @@
       canvas.height = height;
       const ctx = canvas.getContext('2d');
 
-      // Background putih bersih untuk JPG
-      ctx.fillStyle = '#ffffff';
+      // Background gelap modern untuk JPG
+      ctx.fillStyle = '#0b1120';
       ctx.fillRect(0, 0, width, height);
 
       // Header
       const periodTitle = period === 'all' ? 'Semua Bulan' : formatMonthLabel(period);
-      ctx.fillStyle = '#0f172a';
+      ctx.fillStyle = '#f8fafc';
       ctx.font = 'bold 26px system-ui, -apple-system, sans-serif';
       ctx.fillText(`Jurnal Keuangan Keluarga — ${periodTitle}`, 40, 48);
 
-      ctx.fillStyle = '#475569';
-      ctx.font = '16px system-ui, -apple-system, sans-serif';
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = '600 16px system-ui, -apple-system, sans-serif';
       ctx.fillText(
         `Pemasukan: ${formatRupiah(totalIncome)}   |   Pengeluaran: ${formatRupiah(totalExpense)}   |   Saldo: ${formatRupiah(totalIncome - totalExpense)}`,
         40,
@@ -2110,7 +2112,7 @@
       );
 
       // Garis pemisah
-      ctx.strokeStyle = '#e2e8f0';
+      ctx.strokeStyle = '#263248';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.moveTo(40, 102);
@@ -2131,7 +2133,7 @@
           const y = topPad + idx * rowH;
 
           // Nama Pos
-          ctx.fillStyle = '#1e293b';
+          ctx.fillStyle = '#e2e8f0';
           ctx.font = '600 15px system-ui, -apple-system, sans-serif';
           const shortName = b.label.length > 20 ? b.label.slice(0, 19) + '…' : b.label;
           ctx.fillText(shortName, labelX, y + 18);
@@ -2139,9 +2141,9 @@
           // Track batas alokasi (jika ada)
           if (b.budget > 0) {
             const budgetW = Math.max(4, (b.budget / maxVal) * maxBarW);
-            ctx.fillStyle = '#f1f5f9';
+            ctx.fillStyle = '#1e293b';
             ctx.fillRect(barX, y + 2, budgetW, 22);
-            ctx.strokeStyle = '#cbd5e1';
+            ctx.strokeStyle = '#334155';
             ctx.lineWidth = 1;
             ctx.strokeRect(barX, y + 2, budgetW, 22);
           }
@@ -2154,7 +2156,7 @@
           }
 
           // Label nominal
-          ctx.fillStyle = '#0f172a';
+          ctx.fillStyle = '#f8fafc';
           ctx.font = '600 14px system-ui, -apple-system, sans-serif';
           const valText = b.budget > 0
             ? `${formatRupiah(b.spent)} / ${formatRupiah(b.budget)}`
