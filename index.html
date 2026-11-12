@@ -800,6 +800,26 @@
       font-size: 0.875rem;
       color: var(--text-muted);
     }
+
+    /* Login Screen */
+    .login-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: var(--bg);
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 380px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      padding: 28px 24px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    }
   </style>
 </head>
 <body>
@@ -862,6 +882,33 @@
     </div>
   </div>
 
+  <!-- Layar Login Keluarga -->
+  <section id="login-screen" class="login-screen">
+    <div class="login-card">
+      <div class="brand-row">
+        <span class="brand-icon">🔐</span>
+        <div>
+          <h1 class="brand-title">Jurnal Keuangan Keluarga</h1>
+          <p class="brand-sub">Masuk dengan username &amp; kata sandi</p>
+        </div>
+      </div>
+      <form id="login-form" class="form-stack" style="margin-top: 20px;">
+        <div>
+          <label for="login-username" class="label">Username</label>
+          <input id="login-username" type="text" placeholder="Contoh: keluarga" autocomplete="username" required class="input" />
+        </div>
+        <div>
+          <label for="login-password" class="label">Kata Sandi</label>
+          <input id="login-password" type="password" placeholder="Masukkan kata sandi" autocomplete="current-password" required class="input" />
+        </div>
+        <p id="login-error" class="warning-box hidden"></p>
+        <button id="login-submit-btn" type="submit" class="btn-primary">Masuk</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Aplikasi Utama (tampil setelah login) -->
+  <div id="app-shell" class="hidden">
   <!-- Header -->
   <header class="site-header">
     <div class="container header-inner">
@@ -879,6 +926,7 @@
         </select>
         <button id="export-csv-btn" type="button" class="btn">Unduh CSV</button>
         <button id="reset-demo-btn" type="button" class="btn">Kosongkan Data</button>
+        <button id="logout-btn" type="button" class="btn">Keluar</button>
       </div>
     </div>
   </header>
@@ -1028,10 +1076,12 @@
       </div>
     </div>
   </main>
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-app.js";
     import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-auth.js";
 
     // =========================================================================
     // KONFIGURASI FIREBASE PROYEK JURNAL KELUARGA
@@ -1046,7 +1096,9 @@
     };
 
     let db = null;
+    let auth = null;
     let cloudDocRef = null;
+    let unsubscribeSnapshot = null;
     const STORAGE_KEY_ENTRIES = 'jurnal_keuangan_keluarga_v3_entries';
     const STORAGE_KEY_ALLOCS = 'jurnal_keuangan_keluarga_v3_allocs';
 
@@ -1131,6 +1183,14 @@
     const chartCanvas = document.getElementById('expense-chart');
     const chartTooltip = document.getElementById('chart-tooltip');
     const chartLegend = document.getElementById('chart-legend');
+    const loginScreen = document.getElementById('login-screen');
+    const appShell = document.getElementById('app-shell');
+    const loginForm = document.getElementById('login-form');
+    const loginUsernameInput = document.getElementById('login-username');
+    const loginPasswordInput = document.getElementById('login-password');
+    const loginError = document.getElementById('login-error');
+    const loginSubmitBtn = document.getElementById('login-submit-btn');
+    const logoutBtn = document.getElementById('logout-btn');
     const syncBadge = document.getElementById('sync-badge');
     const toastEl = document.getElementById('toast');
 
@@ -1334,12 +1394,11 @@
       closeAddAllocModal();
       renderAll();
 
-    // Hubungkan ke Cloud Firestore secara real-time
-    try {
-      const app = initializeApp(firebaseConfig);
-      db = getFirestore(app);
-      cloudDocRef = doc(db, 'jurnal_keluarga', 'utama');
-      onSnapshot(
+    function startCloudSync() {
+      if (!db || !cloudDocRef) return;
+      if (unsubscribeSnapshot) unsubscribeSnapshot();
+      setSyncStatus('⏳ Menghubungkan...', '#f1f5f9', '#475569');
+      unsubscribeSnapshot = onSnapshot(
         cloudDocRef,
         (snap) => {
           if (snap.exists()) {
@@ -1358,7 +1417,59 @@
           setSyncStatus('📴 Mode Lokal', '#f1f5f9', '#475569');
         }
       );
+    }
+
+    // Inisialisasi Firebase Auth & Firestore
+    try {
+      const app = initializeApp(firebaseConfig);
+      db = getFirestore(app);
+      auth = getAuth(app);
+      cloudDocRef = doc(db, 'jurnal_keluarga', 'utama');
+
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          loginScreen.classList.add('hidden');
+          appShell.classList.remove('hidden');
+          startCloudSync();
+        } else {
+          if (unsubscribeSnapshot) {
+            unsubscribeSnapshot();
+            unsubscribeSnapshot = null;
+          }
+          appShell.classList.add('hidden');
+          loginScreen.classList.remove('hidden');
+        }
+      });
+
+      loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        loginError.classList.add('hidden');
+        const rawUser = loginUsernameInput.value.trim().toLowerCase();
+        const pass = loginPasswordInput.value;
+        if (!rawUser || !pass) return;
+        const email = rawUser.includes('@') ? rawUser : `${rawUser}@jurnal.local`;
+        loginSubmitBtn.disabled = true;
+        loginSubmitBtn.textContent = 'Memeriksa...';
+        try {
+          await signInWithEmailAndPassword(auth, email, pass);
+          loginPasswordInput.value = '';
+        } catch (err) {
+          loginError.textContent = 'Username atau kata sandi salah. Silakan coba lagi.';
+          loginError.classList.remove('hidden');
+        } finally {
+          loginSubmitBtn.disabled = false;
+          loginSubmitBtn.textContent = 'Masuk';
+        }
+      });
+
+      logoutBtn.addEventListener('click', () => {
+        openModal('Keluar dari Jurnal', 'Anda akan keluar dari akun keluarga di perangkat ini. Lanjutkan?', async () => {
+          await signOut(auth);
+        });
+      });
     } catch (e) {
+      loginScreen.classList.add('hidden');
+      appShell.classList.remove('hidden');
       setSyncStatus('📴 Mode Lokal', '#f1f5f9', '#475569');
     }
       entryCategorySelect.value = name;
