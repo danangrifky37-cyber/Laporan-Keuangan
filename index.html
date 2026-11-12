@@ -845,6 +845,24 @@
     </div>
   </div>
 
+  <!-- Modal Unduh Grafik JPG -->
+  <div id="export-modal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <h3 class="modal-title">Unduh Grafik Batang (JPG)</h3>
+      <p class="modal-desc">Pilih periode data yang ingin dijadikan gambar diagram batang.</p>
+      <form id="export-modal-form" class="form-stack">
+        <div>
+          <label for="export-period-select" class="label">Pilih Periode</label>
+          <select id="export-period-select" class="select"></select>
+        </div>
+        <div class="modal-actions">
+          <button id="export-modal-cancel" type="button" class="btn">Batal</button>
+          <button type="submit" class="btn btn-emerald">Unduh JPG</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Modal Edit Batas Alokasi -->
   <div id="budget-modal" class="modal-backdrop hidden">
     <div class="modal-card">
@@ -880,7 +898,7 @@
         <select id="month-filter" aria-label="Filter bulan" class="select select-auto">
           <option value="all">Semua Bulan</option>
         </select>
-        <button id="export-csv-btn" type="button" class="btn">Unduh CSV</button>
+        <button id="export-jpg-btn" type="button" class="btn">Unduh Grafik JPG</button>
         <button id="reset-demo-btn" type="button" class="btn">Kosongkan Data</button>
       </div>
     </div>
@@ -1977,31 +1995,172 @@
       });
     });
 
-    document.getElementById('export-csv-btn').addEventListener('click', () => {
-      const filtered = getFilteredEntries(false);
-      if (filtered.length === 0) {
-        showToast('Tidak ada catatan untuk diunduh.');
+    const exportModal = document.getElementById('export-modal');
+    const exportModalForm = document.getElementById('export-modal-form');
+    const exportPeriodSelect = document.getElementById('export-period-select');
+    const exportModalCancel = document.getElementById('export-modal-cancel');
+
+    function openExportModal() {
+      const months = Array.from(new Set(entries.map((e) => e.date.slice(0, 7)))).sort().reverse();
+      exportPeriodSelect.innerHTML = '<option value="all">Semua Bulan (Gabungan)</option>';
+      months.forEach((ym) => {
+        const opt = document.createElement('option');
+        opt.value = ym;
+        opt.textContent = formatMonthLabel(ym);
+        exportPeriodSelect.appendChild(opt);
+      });
+      const currentMonth = monthFilter.value;
+      if (currentMonth === 'all' || months.includes(currentMonth)) {
+        exportPeriodSelect.value = currentMonth;
+      }
+      exportModal.classList.remove('hidden');
+    }
+
+    function closeExportModal() {
+      exportModal.classList.add('hidden');
+    }
+
+    document.getElementById('export-jpg-btn').addEventListener('click', openExportModal);
+    exportModalCancel.addEventListener('click', closeExportModal);
+
+    function downloadBarChartJpg(period) {
+      const periodEntries = entries.filter((e) => period === 'all' || e.date.startsWith(period));
+      let totalIncome = 0;
+      let totalExpense = 0;
+      const grouped = {};
+
+      periodEntries.forEach((e) => {
+        if (e.type === 'income') {
+          totalIncome += e.amount;
+        } else {
+          totalExpense += e.amount;
+          grouped[e.category] = (grouped[e.category] || 0) + e.amount;
+        }
+      });
+
+      // Gabungkan semua pos alokasi + kategori pengeluaran yang ada
+      const catNames = new Set([
+        ...allocations.map((a) => a.id),
+        ...Object.keys(grouped)
+      ]);
+      const bars = Array.from(catNames)
+        .map((name) => ({
+          label: name,
+          spent: grouped[name] || 0,
+          budget: getCategoryBudget(name),
+          color: getCategoryMeta('expense', name).color || '#059669'
+        }))
+        .filter((b) => b.spent > 0 || b.budget > 0)
+        .sort((a, b) => b.spent - a.spent);
+
+      if (bars.length === 0 && totalIncome === 0) {
+        showToast('Belum ada data pada periode tersebut untuk diunduh.');
         return;
       }
-      const header = ['Tanggal', 'Jenis', 'Pos_Kategori', 'Nominal', 'Catatan'];
-      const rows = filtered.map((e) => [
-        e.date,
-        e.type === 'income' ? 'Pemasukan' : 'Pengeluaran',
-        e.category,
-        e.amount,
-        `"${e.note.replace(/"/g, '""')}"`
-      ]);
-      const csvContent = [header.join(','), ...rows.map((r) => r.join(','))].join('\n');
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
+
+      const width = 1000;
+      const rowH = 44;
+      const topPad = 135;
+      const bottomPad = 50;
+      const height = Math.max(360, topPad + Math.max(1, bars.length) * rowH + bottomPad);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+
+      // Background putih bersih untuk JPG
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, width, height);
+
+      // Header
+      const periodTitle = period === 'all' ? 'Semua Bulan' : formatMonthLabel(period);
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 26px system-ui, -apple-system, sans-serif';
+      ctx.fillText(`Jurnal Keuangan Keluarga — ${periodTitle}`, 40, 48);
+
+      ctx.fillStyle = '#475569';
+      ctx.font = '16px system-ui, -apple-system, sans-serif';
+      ctx.fillText(
+        `Pemasukan: ${formatRupiah(totalIncome)}   |   Pengeluaran: ${formatRupiah(totalExpense)}   |   Saldo: ${formatRupiah(totalIncome - totalExpense)}`,
+        40,
+        80
+      );
+
+      // Garis pemisah
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(40, 102);
+      ctx.lineTo(width - 40, 102);
+      ctx.stroke();
+
+      if (bars.length === 0) {
+        ctx.fillStyle = '#64748b';
+        ctx.font = '18px system-ui, -apple-system, sans-serif';
+        ctx.fillText('Belum ada data pengeluaran atau pos alokasi pada periode ini.', 40, 160);
+      } else {
+        const labelX = 40;
+        const barX = 240;
+        const maxBarW = 500;
+        const maxVal = Math.max(...bars.map((b) => Math.max(b.spent, b.budget)), 1);
+
+        bars.forEach((b, idx) => {
+          const y = topPad + idx * rowH;
+
+          // Nama Pos
+          ctx.fillStyle = '#1e293b';
+          ctx.font = '600 15px system-ui, -apple-system, sans-serif';
+          const shortName = b.label.length > 20 ? b.label.slice(0, 19) + '…' : b.label;
+          ctx.fillText(shortName, labelX, y + 18);
+
+          // Track batas alokasi (jika ada)
+          if (b.budget > 0) {
+            const budgetW = Math.max(4, (b.budget / maxVal) * maxBarW);
+            ctx.fillStyle = '#f1f5f9';
+            ctx.fillRect(barX, y + 2, budgetW, 22);
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(barX, y + 2, budgetW, 22);
+          }
+
+          // Batang realisasi pengeluaran
+          if (b.spent > 0) {
+            const spentW = Math.max(6, (b.spent / maxVal) * maxBarW);
+            ctx.fillStyle = b.budget > 0 && b.spent > b.budget ? '#e11d48' : b.color;
+            ctx.fillRect(barX, y + 5, spentW, 16);
+          }
+
+          // Label nominal
+          ctx.fillStyle = '#0f172a';
+          ctx.font = '600 14px system-ui, -apple-system, sans-serif';
+          const valText = b.budget > 0
+            ? `${formatRupiah(b.spent)} / ${formatRupiah(b.budget)}`
+            : formatRupiah(b.spent);
+          ctx.fillText(valText, barX + maxBarW + 18, y + 18);
+        });
+      }
+
+      // Footer keterangan kecil
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '12px system-ui, -apple-system, sans-serif';
+      ctx.fillText('Keterangan: Batang berwarna = Realisasi   |   Kotak abu-abu = Batas Alokasi', 40, height - 18);
+
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
       const link = document.createElement('a');
-      link.href = url;
-      link.download = 'jurnal-keuangan-keluarga.csv';
+      link.href = dataUrl;
+      link.download = `grafik-keuangan-${period === 'all' ? 'semua-bulan' : period}.jpg`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      showToast('File CSV berhasil diunduh.');
+      showToast('Gambar diagram batang (JPG) berhasil diunduh.');
+    }
+
+    exportModalForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const period = exportPeriodSelect.value || 'all';
+      closeExportModal();
+      downloadBarChartJpg(period);
     });
 
     document.getElementById('reset-demo-btn').addEventListener('click', () => {
