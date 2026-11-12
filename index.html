@@ -801,25 +801,6 @@
       color: var(--text-muted);
     }
 
-    /* Login Screen */
-    .login-screen {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-      background: var(--bg);
-    }
-
-    .login-card {
-      width: 100%;
-      max-width: 380px;
-      border-radius: var(--radius-lg);
-      border: 1px solid var(--border);
-      background: var(--surface);
-      padding: 28px 24px;
-      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
-    }
   </style>
 </head>
 <body>
@@ -882,33 +863,8 @@
     </div>
   </div>
 
-  <!-- Layar Login Keluarga -->
-  <section id="login-screen" class="login-screen">
-    <div class="login-card">
-      <div class="brand-row">
-        <span class="brand-icon">🔐</span>
-        <div>
-          <h1 class="brand-title">Jurnal Keuangan Keluarga</h1>
-          <p class="brand-sub">Masuk dengan username &amp; kata sandi</p>
-        </div>
-      </div>
-      <form id="login-form" class="form-stack" style="margin-top: 20px;">
-        <div>
-          <label for="login-username" class="label">Username</label>
-          <input id="login-username" type="text" placeholder="Contoh: keluarga" autocomplete="username" required class="input" />
-        </div>
-        <div>
-          <label for="login-password" class="label">Kata Sandi</label>
-          <input id="login-password" type="password" placeholder="Masukkan kata sandi" autocomplete="current-password" required class="input" />
-        </div>
-        <p id="login-error" class="warning-box hidden"></p>
-        <button id="login-submit-btn" type="submit" class="btn-primary">Masuk</button>
-      </form>
-    </div>
-  </section>
-
-  <!-- Aplikasi Utama (tampil setelah login) -->
-  <div id="app-shell" class="hidden">
+  <!-- Aplikasi Utama -->
+  <div id="app-shell">
   <!-- Header -->
   <header class="site-header">
     <div class="container header-inner">
@@ -926,7 +882,6 @@
         </select>
         <button id="export-csv-btn" type="button" class="btn">Unduh CSV</button>
         <button id="reset-demo-btn" type="button" class="btn">Kosongkan Data</button>
-        <button id="logout-btn" type="button" class="btn">Keluar</button>
       </div>
     </div>
   </header>
@@ -1079,7 +1034,6 @@
   </div>
 
   <script type="module">
-    let fbAuthFns = null;
     let fbFsFns = null;
 
     // =========================================================================
@@ -1095,10 +1049,8 @@
     };
 
     let db = null;
-    let auth = null;
     let cloudDocRef = null;
     let unsubscribeSnapshot = null;
-    let firebaseReady = false;
     const STORAGE_KEY_ENTRIES = 'jurnal_keuangan_keluarga_v3_entries';
     const STORAGE_KEY_ALLOCS = 'jurnal_keuangan_keluarga_v3_allocs';
 
@@ -1183,14 +1135,7 @@
     const chartCanvas = document.getElementById('expense-chart');
     const chartTooltip = document.getElementById('chart-tooltip');
     const chartLegend = document.getElementById('chart-legend');
-    const loginScreen = document.getElementById('login-screen');
-    const appShell = document.getElementById('app-shell');
-    const loginForm = document.getElementById('login-form');
-    const loginUsernameInput = document.getElementById('login-username');
-    const loginPasswordInput = document.getElementById('login-password');
-    const loginError = document.getElementById('login-error');
-    const loginSubmitBtn = document.getElementById('login-submit-btn');
-    const logoutBtn = document.getElementById('logout-btn');
+
     const syncBadge = document.getElementById('sync-badge');
     const toastEl = document.getElementById('toast');
 
@@ -1394,48 +1339,6 @@
       closeAddAllocModal();
       renderAll();
 
-    // Pasang handler login langsung agar form tidak pernah me-refresh halaman
-    loginForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      loginError.classList.add('hidden');
-      if (!firebaseReady || !auth || !fbAuthFns) {
-        loginError.textContent = 'Koneksi ke server login sedang dimuat atau terganggu. Coba beberapa detik lagi.';
-        loginError.classList.remove('hidden');
-        return;
-      }
-      const rawUser = loginUsernameInput.value.trim().toLowerCase();
-      const pass = loginPasswordInput.value;
-      if (!rawUser || !pass) return;
-      const email = rawUser.includes('@') ? rawUser : `${rawUser}@jurnal.local`;
-      loginSubmitBtn.disabled = true;
-      loginSubmitBtn.textContent = 'Memeriksa...';
-      try {
-        await fbAuthFns.signInWithEmailAndPassword(auth, email, pass);
-        loginPasswordInput.value = '';
-      } catch (err) {
-        const code = err && err.code ? err.code : '';
-        if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found') {
-          loginError.textContent = 'Username atau kata sandi salah. Silakan coba lagi.';
-        } else if (code === 'auth/operation-not-allowed') {
-          loginError.textContent = 'Metode Email/Password belum diaktifkan di Firebase Console.';
-        } else {
-          loginError.textContent = `Gagal masuk (${code || 'periksa koneksi internet'}).`;
-        }
-        loginError.classList.remove('hidden');
-      } finally {
-        loginSubmitBtn.disabled = false;
-        loginSubmitBtn.textContent = 'Masuk';
-      }
-    });
-
-    logoutBtn.addEventListener('click', () => {
-      openModal('Keluar dari Jurnal', 'Anda akan keluar dari akun keluarga di perangkat ini. Lanjutkan?', async () => {
-        if (auth && fbAuthFns) {
-          await fbAuthFns.signOut(auth);
-        }
-      });
-    });
-
     function startCloudSync() {
       if (!db || !cloudDocRef || !fbFsFns) return;
       if (unsubscribeSnapshot) unsubscribeSnapshot();
@@ -1461,39 +1364,19 @@
       );
     }
 
-    // Muat Firebase SDK secara dinamis agar tidak memblokir tombol form
+    // Muat Firebase Firestore langsung tanpa layar login
     (async function initFirebase() {
       try {
-        const [appMod, fsMod, authMod] = await Promise.all([
+        const [appMod, fsMod] = await Promise.all([
           import("https://www.gstatic.com/firebasejs/13.3.0/firebase-app.js"),
-          import("https://www.gstatic.com/firebasejs/13.3.0/firebase-firestore.js"),
-          import("https://www.gstatic.com/firebasejs/13.3.0/firebase-auth.js")
+          import("https://www.gstatic.com/firebasejs/13.3.0/firebase-firestore.js")
         ]);
         fbFsFns = fsMod;
-        fbAuthFns = authMod;
         const app = appMod.initializeApp(firebaseConfig);
         db = fsMod.getFirestore(app);
-        auth = authMod.getAuth(app);
         cloudDocRef = fsMod.doc(db, 'jurnal_keluarga', 'utama');
-        firebaseReady = true;
-
-        authMod.onAuthStateChanged(auth, (user) => {
-          if (user) {
-            loginScreen.classList.add('hidden');
-            appShell.classList.remove('hidden');
-            startCloudSync();
-          } else {
-            if (unsubscribeSnapshot) {
-              unsubscribeSnapshot();
-              unsubscribeSnapshot = null;
-            }
-            appShell.classList.add('hidden');
-            loginScreen.classList.remove('hidden');
-          }
-        });
+        startCloudSync();
       } catch (e) {
-        loginError.textContent = 'Gagal memuat layanan login Firebase. Pastikan internet aktif lalu muat ulang halaman.';
-        loginError.classList.remove('hidden');
         setSyncStatus('📴 Mode Lokal', '#f1f5f9', '#475569');
       }
     })();
