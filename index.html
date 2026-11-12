@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Jurnal Keuangan Keluarga — Offline Ready</title>
+  <title>Jurnal Keuangan Keluarga — Sinkron Cloud</title>
   <style>
     :root {
       --bg: #f8fafc;
@@ -870,9 +870,10 @@
           <span class="brand-icon">📒</span>
           <h1 class="brand-title">Jurnal Keuangan Keluarga</h1>
         </div>
-        <p class="brand-sub">Atur pos alokasi sendiri &amp; catat realisasi harian (100% Offline)</p>
+        <p class="brand-sub">Atur pos alokasi sendiri &amp; catat realisasi harian (Sinkron Cloud)</p>
       </div>
       <div class="header-controls">
+        <span id="sync-badge" class="period-badge" style="background:#f1f5f9;color:#475569;">⏳ Menghubungkan...</span>
         <select id="month-filter" aria-label="Filter bulan" class="select select-auto">
           <option value="all">Semua Bulan</option>
         </select>
@@ -1028,10 +1029,24 @@
     </div>
   </main>
 
-  <script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-app.js";
+    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-firestore.js";
+
     // =========================================================================
-    // KONFIGURASI AWAL KOSONG (Siap diisi manual oleh Anda & istri)
+    // KONFIGURASI FIREBASE PROYEK JURNAL KELUARGA
     // =========================================================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyBoU9HA-XGu3I8WJGzG8c0AJQNo-12AXMg",
+      authDomain: "jurnal-keluarga.firebaseapp.com",
+      projectId: "jurnal-keluarga",
+      storageBucket: "jurnal-keluarga.firebasestorage.app",
+      messagingSenderId: "264027681680",
+      appId: "1:264027681680:web:2fd54464a58df4effb3915"
+    };
+
+    let db = null;
+    let cloudDocRef = null;
     const STORAGE_KEY_ENTRIES = 'jurnal_keuangan_keluarga_v3_entries';
     const STORAGE_KEY_ALLOCS = 'jurnal_keuangan_keluarga_v3_allocs';
 
@@ -1116,6 +1131,7 @@
     const chartCanvas = document.getElementById('expense-chart');
     const chartTooltip = document.getElementById('chart-tooltip');
     const chartLegend = document.getElementById('chart-legend');
+    const syncBadge = document.getElementById('sync-badge');
     const toastEl = document.getElementById('toast');
 
     // Penyimpanan aman
@@ -1130,10 +1146,33 @@
       return [];
     }
 
+    function setSyncStatus(text, bg, color) {
+      if (!syncBadge) return;
+      syncBadge.textContent = text;
+      syncBadge.style.background = bg;
+      syncBadge.style.color = color;
+    }
+
+    async function syncToCloud() {
+      if (!cloudDocRef) return;
+      setSyncStatus('⏳ Menyimpan...', '#fef3c7', '#92400e');
+      try {
+        await setDoc(cloudDocRef, {
+          allocations,
+          entries,
+          updatedAt: Date.now()
+        });
+        setSyncStatus('☁️ Tersinkron', '#ecfdf5', '#059669');
+      } catch (e) {
+        setSyncStatus('📴 Mode Lokal', '#f1f5f9', '#475569');
+      }
+    }
+
     function saveEntries() {
       try {
         localStorage.setItem(STORAGE_KEY_ENTRIES, JSON.stringify(entries));
       } catch (e) {}
+      syncToCloud();
     }
 
     function loadAllocations() {
@@ -1151,6 +1190,7 @@
       try {
         localStorage.setItem(STORAGE_KEY_ALLOCS, JSON.stringify(allocations));
       } catch (e) {}
+      syncToCloud();
     }
 
     function getCategoryBudget(catId) {
@@ -1293,6 +1333,34 @@
       saveAllocations();
       closeAddAllocModal();
       renderAll();
+
+    // Hubungkan ke Cloud Firestore secara real-time
+    try {
+      const app = initializeApp(firebaseConfig);
+      db = getFirestore(app);
+      cloudDocRef = doc(db, 'jurnal_keluarga', 'utama');
+      onSnapshot(
+        cloudDocRef,
+        (snap) => {
+          if (snap.exists()) {
+            const data = snap.data();
+            if (Array.isArray(data.allocations)) allocations = data.allocations;
+            if (Array.isArray(data.entries)) entries = data.entries;
+            try {
+              localStorage.setItem(STORAGE_KEY_ALLOCS, JSON.stringify(allocations));
+              localStorage.setItem(STORAGE_KEY_ENTRIES, JSON.stringify(entries));
+            } catch (e) {}
+            renderAll();
+          }
+          setSyncStatus('☁️ Tersinkron', '#ecfdf5', '#059669');
+        },
+        () => {
+          setSyncStatus('📴 Mode Lokal', '#f1f5f9', '#475569');
+        }
+      );
+    } catch (e) {
+      setSyncStatus('📴 Mode Lokal', '#f1f5f9', '#475569');
+    }
       entryCategorySelect.value = name;
       updateFormLimitPreview();
       showToast(`Pos "${name}" berhasil ditambahkan.`);
@@ -1924,8 +1992,8 @@
         () => {
           entries = [];
           allocations = [];
-          saveEntries();
-          saveAllocations();
+          try { localStorage.setItem(STORAGE_KEY_ENTRIES, "[]"); localStorage.setItem(STORAGE_KEY_ALLOCS, "[]"); } catch (e) {}
+          syncToCloud();
           renderAll();
           showToast('Semua data berhasil dikosongkan.');
         }
