@@ -109,8 +109,20 @@
 
     /* Header */
     .site-header {
+      position: relative;
       border-bottom: 1px solid var(--border);
-      background: var(--surface);
+      background: linear-gradient(180deg, rgba(16, 185, 129, 0.1) 0%, rgba(17, 24, 39, 0.96) 100%);
+      overflow: hidden;
+    }
+
+    .site-header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #10b981, #38bdf8, #a855f7);
     }
 
     .container {
@@ -122,15 +134,16 @@
 
     .header-inner {
       display: flex;
-      flex-wrap: wrap;
+      flex-direction: column;
       align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 16px 0;
+      text-align: center;
+      gap: 14px;
+      padding: 22px 0 18px;
     }
 
     .brand-row {
       display: flex;
+      flex-direction: column;
       align-items: center;
       gap: 10px;
     }
@@ -139,24 +152,36 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 36px;
-      height: 36px;
-      border-radius: var(--radius-md);
-      background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(56, 189, 248, 0.25)); border: 1px solid rgba(16, 185, 129, 0.35);
-      font-size: 1.125rem;
+      width: 54px;
+      height: 54px;
+      flex-shrink: 0;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #10b981 0%, #0ea5e9 60%, #6366f1 100%);
+      color: #ffffff;
+      box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35), 0 0 0 4px rgba(16, 185, 129, 0.14);
     }
 
     .brand-title {
       margin: 0;
-      font-size: 1.2rem;
-      font-weight: 700;
-      color: var(--text-strong);
-      letter-spacing: -0.01em;
+      font-size: 1.65rem;
+      font-weight: 800;
+      line-height: 1.2;
+      background: linear-gradient(90deg, #ffffff 0%, #6ee7b7 45%, #38bdf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.025em;
+    }
+
+    @media (min-width: 640px) {
+      .brand-title {
+        font-size: 2rem;
+      }
     }
 
     .brand-sub {
-      margin: 2px 0 0;
-      font-size: 0.8rem;
+      margin: 4px 0 0;
+      font-size: 0.85rem;
       color: var(--text-muted);
     }
 
@@ -164,6 +189,7 @@
       display: flex;
       flex-wrap: wrap;
       align-items: center;
+      justify-content: center;
       gap: 8px;
     }
 
@@ -290,19 +316,33 @@
 
     .summary-grid {
       display: grid;
-      grid-template-columns: repeat(1, 1fr);
-      gap: 16px;
-    }
-
-    @media (min-width: 640px) {
-      .summary-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
     }
 
     @media (min-width: 1024px) {
       .summary-grid {
         grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+      }
+    }
+
+    .summary-card {
+      padding: 12px 14px !important;
+      border-radius: 14px !important;
+    }
+
+    .summary-card .summary-value {
+      margin: 4px 0 0;
+      font-size: 1.12rem;
+    }
+
+    @media (min-width: 640px) {
+      .summary-card {
+        padding: 16px 18px !important;
+      }
+      .summary-card .summary-value {
+        font-size: 1.35rem;
       }
     }
 
@@ -536,9 +576,9 @@
     }
 
     #expense-chart {
-      width: 230px;
-      height: 230px;
+      width: 100%;
       max-width: 100%;
+      display: block;
     }
 
     .chart-tooltip {
@@ -865,19 +905,23 @@
     </div>
   </div>
 
-  <!-- Modal Edit Batas Alokasi -->
+  <!-- Modal Edit Pos Alokasi (Nama & Batas) -->
   <div id="budget-modal" class="modal-backdrop hidden">
     <div class="modal-card">
-      <h3 class="modal-title">Ubah Batas Alokasi</h3>
+      <h3 class="modal-title">Edit Pos Alokasi</h3>
       <p id="budget-modal-label" class="modal-desc"></p>
       <form id="budget-modal-form" class="form-stack">
+        <div>
+          <label for="budget-modal-name" class="label">Nama Pos</label>
+          <input id="budget-modal-name" type="text" placeholder="Contoh: Asisten Rumah" required class="input" />
+        </div>
         <div>
           <label for="budget-modal-input" class="label">Batas Bulanan (Rp)</label>
           <input id="budget-modal-input" type="text" inputmode="numeric" placeholder="Contoh: 800.000" required class="input" />
         </div>
         <div class="modal-actions">
           <button id="budget-modal-cancel" type="button" class="btn">Batal</button>
-          <button type="submit" class="btn btn-emerald">Simpan Batas</button>
+          <button type="submit" class="btn btn-emerald">Simpan Perubahan</button>
         </div>
       </form>
     </div>
@@ -890,10 +934,18 @@
     <div class="container header-inner">
       <div>
         <div class="brand-row">
-          <span class="brand-icon">📒</span>
-          <h1 class="brand-title">Jurnal Keuangan Keluarga</h1>
+          <span class="brand-icon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+              <path d="M12 7v6"/>
+              <path d="M9.5 9.5C9.5 8.4 10.6 7.5 12 7.5s2.5.9 2.5 2c0 1.2-1.2 1.8-2.5 2-1.3.2-2.5.8-2.5 2 0 1.1 1.1 2 2.5 2s2.5-.9 2.5-2"/>
+            </svg>
+          </span>
+          <div>
+            <h1 class="brand-title">Jurnal Keuangan Keluarga</h1>
+            <p class="brand-sub">Pantau alokasi pos dana &amp; realisasi harian secara real-time</p>
+          </div>
         </div>
-        <p class="brand-sub">Atur pos alokasi sendiri &amp; catat realisasi harian (Sinkron Cloud)</p>
       </div>
       <div class="header-controls">
         <span id="sync-badge" class="period-badge" style="background:#f1f5f9;color:#475569;">⏳ Menghubungkan...</span>
@@ -909,25 +961,25 @@
   <main class="container main-content">
     <!-- Ringkasan Keuangan -->
     <section aria-label="Ringkasan Keuangan" class="summary-grid">
-      <div class="card">
-        <p class="summary-label">Total Pemasukan</p>
+      <div class="card summary-card">
+        <p class="summary-label">Pemasukan</p>
         <p id="summary-income" class="summary-value text-emerald">Rp 0</p>
         <p id="summary-income-count" class="summary-sub">0 catatan</p>
       </div>
-      <div class="card">
-        <p class="summary-label">Realisasi Terpakai</p>
+      <div class="card summary-card">
+        <p class="summary-label">Terpakai</p>
         <p id="summary-expense" class="summary-value text-rose">Rp 0</p>
         <p id="summary-expense-count" class="summary-sub">0 catatan</p>
       </div>
-      <div class="card">
-        <p class="summary-label">Sisa Alokasi Total</p>
+      <div class="card summary-card">
+        <p class="summary-label">Sisa Alokasi</p>
         <p id="summary-remaining-budget" class="summary-value text-strong">Rp 0</p>
-        <p id="summary-budget-total" class="summary-sub">Dari target Rp 0</p>
+        <p id="summary-budget-total" class="summary-sub">Target Rp 0</p>
       </div>
-      <div class="card">
-        <p class="summary-label">Saldo Bersih Kas</p>
+      <div class="card summary-card">
+        <p class="summary-label">Saldo Kas</p>
         <p id="summary-balance" class="summary-value text-sky">Rp 0</p>
-        <p id="summary-savings-rate" class="summary-sub">0% tersisa dari masuk</p>
+        <p id="summary-savings-rate" class="summary-sub">0% tersisa</p>
       </div>
     </section>
 
@@ -1077,7 +1129,9 @@
     const COLOR_PALETTE = [
       '#ff5e62', '#ff9966', '#ffd43b', '#66cc66', '#f06292',
       '#00b4f0', '#3b82f6', '#00e5c3', '#0c71c3', '#fcc419',
-      '#f4d03f', '#82c91e', '#9775fa', '#5f3dc4', '#fa5252'
+      '#f4d03f', '#82c91e', '#9775fa', '#5f3dc4', '#fa5252',
+      '#22d3ee', '#a3e635', '#fb923c', '#e879f9', '#2dd4bf',
+      '#818cf8', '#f472b6', '#34d399', '#cbd5e1'
     ];
 
     const DEFAULT_ALLOCATIONS = [
@@ -1166,6 +1220,7 @@
     const budgetModal = document.getElementById('budget-modal');
     const budgetModalLabel = document.getElementById('budget-modal-label');
     const budgetModalForm = document.getElementById('budget-modal-form');
+    const budgetModalName = document.getElementById('budget-modal-name');
     const budgetModalInput = document.getElementById('budget-modal-input');
     const budgetModalCancel = document.getElementById('budget-modal-cancel');
 
@@ -1321,10 +1376,26 @@
       closeModal();
     });
 
-    // Modal Tambah Pos Alokasi
+    // Modal Tambah Pos Alokasi (hanya tampilkan warna yang belum dipakai)
+    function getAvailableColors() {
+      const used = new Set(allocations.map((a) => String(a.color || '').toLowerCase()));
+      return COLOR_PALETTE.filter((c) => !used.has(c.toLowerCase()));
+    }
+
     function renderColorPicker() {
+      const available = getAvailableColors();
       colorPicker.innerHTML = '';
-      COLOR_PALETTE.forEach((col) => {
+      if (available.length === 0) {
+        const msg = document.createElement('span');
+        msg.className = 'summary-sub';
+        msg.textContent = 'Semua warna palet sudah digunakan.';
+        colorPicker.appendChild(msg);
+        return;
+      }
+      if (!available.includes(selectedNewColor)) {
+        selectedNewColor = available[0];
+      }
+      available.forEach((col) => {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = `color-swatch ${selectedNewColor === col ? 'selected' : ''}`;
@@ -1339,7 +1410,8 @@
     }
 
     function openAddAllocModal() {
-      selectedNewColor = COLOR_PALETTE[allocations.length % COLOR_PALETTE.length];
+      const available = getAvailableColors();
+      selectedNewColor = available[0] || '#94a3b8';
       newAllocNameInput.value = '';
       newAllocBudgetInput.value = '';
       renderColorPicker();
@@ -1427,13 +1499,14 @@
       showToast(`Pos "${name}" berhasil ditambahkan.`);
     });
 
-    // Modal Edit Batas Alokasi
+    // Modal Edit Pos Alokasi (Nama & Batas)
     function openBudgetModal(catId) {
       editingBudgetCategory = catId;
-      budgetModalLabel.textContent = `Pos dana: ${catId}`;
+      budgetModalLabel.textContent = `Ubah nama atau batas bulanan untuk pos "${catId}"`;
+      budgetModalName.value = catId;
       budgetModalInput.value = formatThousands(getCategoryBudget(catId));
       budgetModal.classList.remove('hidden');
-      budgetModalInput.focus();
+      budgetModalName.focus();
     }
 
     function closeBudgetModal() {
@@ -1444,14 +1517,41 @@
     budgetModalCancel.addEventListener('click', closeBudgetModal);
     budgetModalForm.addEventListener('submit', (e) => {
       e.preventDefault();
+      const newName = budgetModalName.value.trim();
       const val = parseNominal(budgetModalInput.value);
-      if (!editingBudgetCategory || !Number.isFinite(val) || val < 0) return;
-      const target = allocations.find((a) => a.id === editingBudgetCategory);
-      if (target) target.budget = val;
+      if (!editingBudgetCategory || !newName || !Number.isFinite(val) || val < 0) return;
+
+      const duplicate = allocations.some(
+        (a) => a.id !== editingBudgetCategory && a.id.toLowerCase() === newName.toLowerCase()
+      );
+      if (duplicate) {
+        showToast(`Nama pos "${newName}" sudah dipakai.`);
+        return;
+      }
+
+      const oldName = editingBudgetCategory;
+      const target = allocations.find((a) => a.id === oldName);
+      if (target) {
+        target.id = newName;
+        target.label = newName;
+        target.budget = val;
+      }
+
+      let entriesUpdated = false;
+      if (oldName !== newName) {
+        entries.forEach((entry) => {
+          if (entry.type === 'expense' && entry.category === oldName) {
+            entry.category = newName;
+            entriesUpdated = true;
+          }
+        });
+      }
+
       saveAllocations();
+      if (entriesUpdated) saveEntries();
       closeBudgetModal();
       renderAll();
-      showToast(`Batas alokasi ${editingBudgetCategory} diperbarui menjadi ${formatRupiah(val)}.`);
+      showToast(`Pos "${newName}" diperbarui (batas ${formatRupiah(val)}).`);
     });
 
     // Hitung total terpakai
@@ -1733,6 +1833,17 @@
           ? `Lebih ${formatRupiah(Math.abs(remaining))}`
           : `Sisa: ${formatRupiah(remaining)}`;
 
+        const actionWrap = document.createElement('div');
+        actionWrap.style.display = 'flex';
+        actionWrap.style.gap = '4px';
+
+        const editPosBtn = document.createElement('button');
+        editPosBtn.type = 'button';
+        editPosBtn.className = 'btn-del';
+        editPosBtn.style.color = '#38bdf8';
+        editPosBtn.textContent = 'Edit';
+        editPosBtn.addEventListener('click', () => openBudgetModal(cat.id));
+
         const delPosBtn = document.createElement('button');
         delPosBtn.type = 'button';
         delPosBtn.className = 'btn-del';
@@ -1746,8 +1857,10 @@
           });
         });
 
+        actionWrap.appendChild(editPosBtn);
+        actionWrap.appendChild(delPosBtn);
         footer.appendChild(remEl);
-        footer.appendChild(delPosBtn);
+        footer.appendChild(actionWrap);
 
         card.appendChild(top);
         card.appendChild(barWrap);
@@ -1757,14 +1870,16 @@
       });
     }
 
-    // Grafik Donut Native Canvas
+    // Grafik Batang Horizontal Native Canvas
     function renderChart(periodEntries) {
       const emptyEl = document.getElementById('chart-empty');
       let items = [];
 
       if (chartMode === 'target') {
         allocations.forEach((cat) => {
-          if (cat.budget > 0) items.push({ label: cat.label, value: cat.budget, color: cat.color });
+          if (cat.budget > 0) {
+            items.push({ label: cat.label, value: cat.budget, budget: cat.budget, color: cat.color });
+          }
         });
       } else {
         const grouped = {};
@@ -1776,10 +1891,12 @@
         items = Object.keys(grouped).map((k) => ({
           label: k,
           value: grouped[k],
+          budget: getCategoryBudget(k),
           color: getCategoryMeta('expense', k).color
         }));
       }
 
+      items.sort((a, b) => b.value - a.value);
       chartLegend.innerHTML = '';
       chartTooltip.textContent = '';
 
@@ -1794,78 +1911,79 @@
       emptyEl.classList.add('hidden');
 
       const total = items.reduce((s, it) => s + it.value, 0);
-      const ctx = chartCanvas.getContext('2d');
-      const dpr = window.devicePixelRatio || 1;
-      const size = 230;
-      chartCanvas.width = size * dpr;
-      chartCanvas.height = size * dpr;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, size, size);
+      const maxVal = Math.max(...items.map((it) => Math.max(it.value, chartMode === 'real' ? it.budget : 0)), 1);
+      const containerW = Math.max(300, chartCanvas.parentElement.clientWidth || 380);
+      const rowH = 34;
+      const topPad = 8;
+      const height = topPad + items.length * rowH + 8;
 
-      const cx = size / 2;
-      const cy = size / 2;
-      const outerR = 102;
-      const innerR = 58;
-      let startAngle = -Math.PI / 2;
+      const dpr = window.devicePixelRatio || 1;
+      chartCanvas.width = containerW * dpr;
+      chartCanvas.height = height * dpr;
+      chartCanvas.style.height = `${height}px`;
+
+      const ctx = chartCanvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, containerW, height);
+
+      const labelW = Math.min(105, Math.round(containerW * 0.28));
+      const valW = 92;
+      const barX = labelW + 8;
+      const maxBarW = Math.max(60, containerW - barX - valW - 8);
       chartSlices = [];
 
-      items.forEach((it) => {
-        const angle = (it.value / total) * Math.PI * 2;
-        const endAngle = startAngle + angle;
+      items.forEach((it, idx) => {
+        const y = topPad + idx * rowH;
 
+        // Nama pos
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = '500 12px system-ui, sans-serif';
+        ctx.textAlign = 'left';
+        const shortName = it.label.length > 13 ? it.label.slice(0, 12) + '…' : it.label;
+        ctx.fillText(shortName, 0, y + 17);
+
+        // Track batas jika mode realisasi
+        if (chartMode === 'real' && it.budget > 0) {
+          const bW = Math.max(4, (it.budget / maxVal) * maxBarW);
+          ctx.fillStyle = '#1e293b';
+          ctx.fillRect(barX, y + 5, bW, 16);
+        }
+
+        // Batang utama
+        const barW = Math.max(4, (it.value / maxVal) * maxBarW);
+        ctx.fillStyle = chartMode === 'real' && it.budget > 0 && it.value > it.budget ? '#fb7185' : it.color;
         ctx.beginPath();
-        ctx.arc(cx, cy, outerR, startAngle, endAngle);
-        ctx.arc(cx, cy, innerR, endAngle, startAngle, true);
-        ctx.closePath();
-        ctx.fillStyle = it.color;
-        ctx.fill();
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = '#111827';
-        ctx.stroke();
+        if (ctx.roundRect) {
+          ctx.roundRect(barX, y + 6, barW, 14, 4);
+          ctx.fill();
+        } else {
+          ctx.fillRect(barX, y + 6, barW, 14);
+        }
+
+        // Nilai Rupiah di kanan
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = '600 11px system-ui, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(formatRupiah(it.value), containerW, y + 17);
 
         chartSlices.push({
           ...it,
-          pct: Math.round((it.value / total) * 1000) / 10,
-          startAngle,
-          endAngle
+          pct: total > 0 ? Math.round((it.value / total) * 1000) / 10 : 0,
+          yTop: y,
+          yBottom: y + rowH
         });
-
-        const leg = document.createElement('span');
-        leg.className = 'legend-item';
-        const dot = document.createElement('span');
-        dot.className = 'legend-dot';
-        dot.style.backgroundColor = it.color;
-        leg.appendChild(dot);
-        leg.appendChild(document.createTextNode(it.label));
-        chartLegend.appendChild(leg);
-
-        startAngle = endAngle;
       });
-
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '600 11px system-ui, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(chartMode === 'target' ? 'Target' : 'Total', cx, cy - 6);
-      ctx.fillStyle = '#f8fafc';
-      ctx.font = '700 13px system-ui, sans-serif';
-      ctx.fillText(formatRupiah(total), cx, cy + 12);
     }
 
     function handleChartPointer(clientX, clientY) {
       if (chartSlices.length === 0) return;
       const rect = chartCanvas.getBoundingClientRect();
-      const x = clientX - rect.left - rect.width / 2;
-      const y = clientY - rect.top - rect.height / 2;
-      const dist = Math.hypot(x, y);
-      if (dist < 48 || dist > 110) {
-        chartTooltip.textContent = '';
-        return;
-      }
-      let angle = Math.atan2(y, x);
-      if (angle < -Math.PI / 2) angle += Math.PI * 2;
-      const hit = chartSlices.find((s) => angle >= s.startAngle && angle <= s.endAngle);
+      const y = clientY - rect.top;
+      const hit = chartSlices.find((s) => y >= s.yTop && y <= s.yBottom);
       if (hit) {
         chartTooltip.textContent = `${hit.label}: ${formatRupiah(hit.value)} (${hit.pct}%)`;
+      } else {
+        chartTooltip.textContent = '';
       }
     }
 
