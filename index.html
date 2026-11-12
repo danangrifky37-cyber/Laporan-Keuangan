@@ -1073,9 +1073,27 @@
     const STORAGE_KEY_ALLOCS = 'jurnal_keuangan_keluarga_v3_allocs';
 
     const COLOR_PALETTE = [
-      '#ff5e62', '#ff9966', '#66cc66', '#ffd43b', '#f06292',
-      '#00b4f0', '#82c91e', '#3b82f6', '#9775fa', '#00e5c3',
-      '#fcc419', '#0c71c3', '#5f3dc4', '#fa5252', '#64748b'
+      '#ff5e62', '#ff9966', '#ffd43b', '#66cc66', '#f06292',
+      '#00b4f0', '#3b82f6', '#00e5c3', '#0c71c3', '#fcc419',
+      '#f4d03f', '#82c91e', '#9775fa', '#5f3dc4', '#fa5252'
+    ];
+
+    const DEFAULT_ALLOCATIONS = [
+      { id: 'Pembantu', label: 'Pembantu', budget: 2000000, color: '#ff5e62' },
+      { id: 'Suami', label: 'Suami', budget: 1200000, color: '#ff9966' },
+      { id: 'Makan', label: 'Makan', budget: 800000, color: '#ffd43b' },
+      { id: 'Ortu', label: 'Ortu', budget: 600000, color: '#66cc66' },
+      { id: 'Listrik', label: 'Listrik', budget: 550000, color: '#f06292' },
+      { id: 'Popok', label: 'Popok', budget: 450000, color: '#00b4f0' },
+      { id: 'Bensin', label: 'Bensin', budget: 400000, color: '#3b82f6' },
+      { id: 'Renang', label: 'Renang', budget: 400000, color: '#00e5c3' },
+      { id: 'Nabung', label: 'Nabung', budget: 400000, color: '#0c71c3' },
+      { id: 'Jajan', label: 'Jajan', budget: 300000, color: '#fcc419' },
+      { id: 'Belanja Sabun', label: 'Belanja Sabun', budget: 200000, color: '#f4d03f' },
+      { id: 'Gas', label: 'Gas', budget: 200000, color: '#82c91e' },
+      { id: 'Servis', label: 'Servis', budget: 200000, color: '#9775fa' },
+      { id: 'Nabung Azka', label: 'Nabung Azka', budget: 200000, color: '#5f3dc4' },
+      { id: 'Dana Darurat', label: 'Dana Darurat', budget: 100000, color: '#fa5252' }
     ];
 
     const INCOME_CATEGORIES = [
@@ -1203,10 +1221,10 @@
         const raw = localStorage.getItem(STORAGE_KEY_ALLOCS);
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) return parsed;
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
         }
       } catch (e) {}
-      return [];
+      return DEFAULT_ALLOCATIONS.map((a) => ({ ...a }));
     }
 
     function saveAllocations() {
@@ -1366,7 +1384,11 @@
         (snap) => {
           if (snap.exists()) {
             const data = snap.data();
-            if (Array.isArray(data.allocations)) allocations = data.allocations;
+            if (Array.isArray(data.allocations) && data.allocations.length > 0) {
+              allocations = data.allocations;
+            } else if (allocations.length === 0) {
+              allocations = DEFAULT_ALLOCATIONS.map((a) => ({ ...a }));
+            }
             if (Array.isArray(data.entries)) entries = data.entries;
             try {
               localStorage.setItem(STORAGE_KEY_ALLOCS, JSON.stringify(allocations));
