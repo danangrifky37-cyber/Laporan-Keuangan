@@ -1079,9 +1079,8 @@
   </div>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-app.js";
-    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-firestore.js";
-    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-auth.js";
+    let fbAuthFns = null;
+    let fbFsFns = null;
 
     // =========================================================================
     // KONFIGURASI FIREBASE PROYEK JURNAL KELUARGA
@@ -1099,6 +1098,7 @@
     let auth = null;
     let cloudDocRef = null;
     let unsubscribeSnapshot = null;
+    let firebaseReady = false;
     const STORAGE_KEY_ENTRIES = 'jurnal_keuangan_keluarga_v3_entries';
     const STORAGE_KEY_ALLOCS = 'jurnal_keuangan_keluarga_v3_allocs';
 
@@ -1214,10 +1214,10 @@
     }
 
     async function syncToCloud() {
-      if (!cloudDocRef) return;
+      if (!cloudDocRef || !fbFsFns) return;
       setSyncStatus('⏳ Menyimpan...', '#fef3c7', '#92400e');
       try {
-        await setDoc(cloudDocRef, {
+        await fbFsFns.setDoc(cloudDocRef, {
           allocations,
           entries,
           updatedAt: Date.now()
@@ -1394,11 +1394,53 @@
       closeAddAllocModal();
       renderAll();
 
+    // Pasang handler login langsung agar form tidak pernah me-refresh halaman
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      loginError.classList.add('hidden');
+      if (!firebaseReady || !auth || !fbAuthFns) {
+        loginError.textContent = 'Koneksi ke server login sedang dimuat atau terganggu. Coba beberapa detik lagi.';
+        loginError.classList.remove('hidden');
+        return;
+      }
+      const rawUser = loginUsernameInput.value.trim().toLowerCase();
+      const pass = loginPasswordInput.value;
+      if (!rawUser || !pass) return;
+      const email = rawUser.includes('@') ? rawUser : `${rawUser}@jurnal.local`;
+      loginSubmitBtn.disabled = true;
+      loginSubmitBtn.textContent = 'Memeriksa...';
+      try {
+        await fbAuthFns.signInWithEmailAndPassword(auth, email, pass);
+        loginPasswordInput.value = '';
+      } catch (err) {
+        const code = err && err.code ? err.code : '';
+        if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found') {
+          loginError.textContent = 'Username atau kata sandi salah. Silakan coba lagi.';
+        } else if (code === 'auth/operation-not-allowed') {
+          loginError.textContent = 'Metode Email/Password belum diaktifkan di Firebase Console.';
+        } else {
+          loginError.textContent = `Gagal masuk (${code || 'periksa koneksi internet'}).`;
+        }
+        loginError.classList.remove('hidden');
+      } finally {
+        loginSubmitBtn.disabled = false;
+        loginSubmitBtn.textContent = 'Masuk';
+      }
+    });
+
+    logoutBtn.addEventListener('click', () => {
+      openModal('Keluar dari Jurnal', 'Anda akan keluar dari akun keluarga di perangkat ini. Lanjutkan?', async () => {
+        if (auth && fbAuthFns) {
+          await fbAuthFns.signOut(auth);
+        }
+      });
+    });
+
     function startCloudSync() {
-      if (!db || !cloudDocRef) return;
+      if (!db || !cloudDocRef || !fbFsFns) return;
       if (unsubscribeSnapshot) unsubscribeSnapshot();
       setSyncStatus('⏳ Menghubungkan...', '#f1f5f9', '#475569');
-      unsubscribeSnapshot = onSnapshot(
+      unsubscribeSnapshot = fbFsFns.onSnapshot(
         cloudDocRef,
         (snap) => {
           if (snap.exists()) {
@@ -1419,59 +1461,42 @@
       );
     }
 
-    // Inisialisasi Firebase Auth & Firestore
-    try {
-      const app = initializeApp(firebaseConfig);
-      db = getFirestore(app);
-      auth = getAuth(app);
-      cloudDocRef = doc(db, 'jurnal_keluarga', 'utama');
+    // Muat Firebase SDK secara dinamis agar tidak memblokir tombol form
+    (async function initFirebase() {
+      try {
+        const [appMod, fsMod, authMod] = await Promise.all([
+          import("https://www.gstatic.com/firebasejs/13.3.0/firebase-app.js"),
+          import("https://www.gstatic.com/firebasejs/13.3.0/firebase-firestore.js"),
+          import("https://www.gstatic.com/firebasejs/13.3.0/firebase-auth.js")
+        ]);
+        fbFsFns = fsMod;
+        fbAuthFns = authMod;
+        const app = appMod.initializeApp(firebaseConfig);
+        db = fsMod.getFirestore(app);
+        auth = authMod.getAuth(app);
+        cloudDocRef = fsMod.doc(db, 'jurnal_keluarga', 'utama');
+        firebaseReady = true;
 
-      onAuthStateChanged(auth, (user) => {
-        if (user) {
-          loginScreen.classList.add('hidden');
-          appShell.classList.remove('hidden');
-          startCloudSync();
-        } else {
-          if (unsubscribeSnapshot) {
-            unsubscribeSnapshot();
-            unsubscribeSnapshot = null;
+        authMod.onAuthStateChanged(auth, (user) => {
+          if (user) {
+            loginScreen.classList.add('hidden');
+            appShell.classList.remove('hidden');
+            startCloudSync();
+          } else {
+            if (unsubscribeSnapshot) {
+              unsubscribeSnapshot();
+              unsubscribeSnapshot = null;
+            }
+            appShell.classList.add('hidden');
+            loginScreen.classList.remove('hidden');
           }
-          appShell.classList.add('hidden');
-          loginScreen.classList.remove('hidden');
-        }
-      });
-
-      loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        loginError.classList.add('hidden');
-        const rawUser = loginUsernameInput.value.trim().toLowerCase();
-        const pass = loginPasswordInput.value;
-        if (!rawUser || !pass) return;
-        const email = rawUser.includes('@') ? rawUser : `${rawUser}@jurnal.local`;
-        loginSubmitBtn.disabled = true;
-        loginSubmitBtn.textContent = 'Memeriksa...';
-        try {
-          await signInWithEmailAndPassword(auth, email, pass);
-          loginPasswordInput.value = '';
-        } catch (err) {
-          loginError.textContent = 'Username atau kata sandi salah. Silakan coba lagi.';
-          loginError.classList.remove('hidden');
-        } finally {
-          loginSubmitBtn.disabled = false;
-          loginSubmitBtn.textContent = 'Masuk';
-        }
-      });
-
-      logoutBtn.addEventListener('click', () => {
-        openModal('Keluar dari Jurnal', 'Anda akan keluar dari akun keluarga di perangkat ini. Lanjutkan?', async () => {
-          await signOut(auth);
         });
-      });
-    } catch (e) {
-      loginScreen.classList.add('hidden');
-      appShell.classList.remove('hidden');
-      setSyncStatus('📴 Mode Lokal', '#f1f5f9', '#475569');
-    }
+      } catch (e) {
+        loginError.textContent = 'Gagal memuat layanan login Firebase. Pastikan internet aktif lalu muat ulang halaman.';
+        loginError.classList.remove('hidden');
+        setSyncStatus('📴 Mode Lokal', '#f1f5f9', '#475569');
+      }
+    })();
       entryCategorySelect.value = name;
       updateFormLimitPreview();
       showToast(`Pos "${name}" berhasil ditambahkan.`);
