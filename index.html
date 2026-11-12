@@ -2147,7 +2147,9 @@
     const exportModalCancel = document.getElementById('export-modal-cancel');
 
     function openExportModal() {
+      const currentYm = getTodayIso().slice(0, 7);
       const months = Array.from(new Set(entries.map((e) => e.date.slice(0, 7)))).sort().reverse();
+      if (months.length === 0) months.push(currentYm);
       exportPeriodSelect.innerHTML = '<option value="all">Semua Bulan (Gabungan)</option>';
       months.forEach((ym) => {
         const opt = document.createElement('option');
