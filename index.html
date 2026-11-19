@@ -1439,6 +1439,7 @@
         </div>
 
         <div class="header-actions">
+          <button id="auth-btn" type="button" class="btn" title="Login akun Google untuk sinkronisasi aman">🔑 Login Google</button>
           <select id="month-filter" aria-label="Filter bulan" class="pill-select">
             <option value="all">Semua Bulan</option>
           </select>
@@ -1551,6 +1552,10 @@
 
   <script type="module">
     let fbFsFns = null;
+    let fbAuthFns = null;
+    let auth = null;
+    let googleProvider = null;
+    let currentUser = null;
 
     // =========================================================================
     // KONFIGURASI FIREBASE PROYEK JURNAL KELUARGA
@@ -1703,6 +1708,7 @@
     const chartModeBtns = document.querySelectorAll('.chart-mode-btn');
 
     const syncBadge = document.getElementById('sync-badge');
+    const authBtn = document.getElementById('auth-btn');
     const toastEl = document.getElementById('toast');
 
     // =========================================================================
@@ -1743,6 +1749,79 @@
       syncBadge.style.color = color;
     }
 
+    function updateAuthUI(user) {
+      currentUser = user || null;
+      if (!authBtn) return;
+      if (currentUser) {
+        const shortName = (currentUser.email || 'Akun').split('@')[0];
+        authBtn.textContent = `👤 ${shortName} (Keluar)`;
+        authBtn.style.borderColor = 'rgba(52, 211, 153, 0.38)';
+        authBtn.style.background = 'rgba(52, 211, 153, 0.10)';
+        authBtn.style.color = '#6ee7b7';
+      } else {
+        authBtn.textContent = '🔑 Login Google';
+        authBtn.style.borderColor = '';
+        authBtn.style.background = '';
+        authBtn.style.color = '';
+      }
+    }
+
+    async function triggerGoogleLogin() {
+      if (!auth || !fbAuthFns || !googleProvider) {
+        showToast('Layanan login belum siap, coba muat ulang halaman.');
+        return;
+      }
+      try {
+        await fbAuthFns.signInWithPopup(auth, googleProvider);
+        showToast('Berhasil login dengan akun Google!');
+      } catch (err) {
+        if (err && (err.code === 'auth/popup-blocked' || err.code === 'auth/cancelled-popup-request')) {
+          try {
+            await fbAuthFns.signInWithRedirect(auth, googleProvider);
+          } catch (redirErr) {
+            showToast(`Gagal login: ${redirErr.code || 'Error'}`);
+          }
+        } else if (err && err.code === 'auth/unauthorized-domain') {
+          showToast('Domain web belum didaftarkan di Firebase Authentication > Authorized domains.');
+        } else if (err && err.code !== 'auth/popup-closed-by-user') {
+          showToast(`Gagal login Google (${err.code || 'Error'}).`);
+        }
+      }
+    }
+
+    if (authBtn) {
+      authBtn.addEventListener('click', () => {
+        if (currentUser && auth && fbAuthFns) {
+          openModal(
+            'Keluar Akun Google',
+            `Keluar dari akun ${currentUser.email}? Jika database dikunci, sinkronisasi akan berhenti sementara sampai Anda login kembali.`,
+            async () => {
+              try {
+                await fbAuthFns.signOut(auth);
+                showToast('Berhasil keluar dari akun Google.');
+              } catch (e) {
+                showToast('Gagal keluar akun.');
+              }
+            }
+          );
+        } else {
+          triggerGoogleLogin();
+        }
+      });
+    }
+
+    if (syncBadge) {
+      syncBadge.style.cursor = 'pointer';
+      syncBadge.addEventListener('click', () => {
+        if (!currentUser) {
+          triggerGoogleLogin();
+        } else {
+          startCloudSync();
+          showToast('Menyegarkan koneksi sinkronisasi...');
+        }
+      });
+    }
+
     async function syncToCloud() {
       if (!cloudDocRef || !fbFsFns) return;
       setSyncStatus('⏳ Menyimpan...', 'rgba(251, 191, 36, 0.14)', '#fbbf24');
@@ -1754,7 +1833,16 @@
         });
         setSyncStatus('☁️ Tersinkron', 'rgba(52, 211, 153, 0.14)', '#34d399');
       } catch (e) {
-        setSyncStatus('📴 Mode Lokal', 'rgba(255, 255, 255, 0.06)', '#cbd5e1');
+        console.error('Gagal simpan ke cloud:', e);
+        if (e && e.code === 'permission-denied') {
+          setSyncStatus(
+            currentUser ? '⛔ Email Tidak Diizinkan' : '🔒 Perlu Login Google',
+            'rgba(251, 113, 133, 0.16)',
+            '#fb7185'
+          );
+        } else {
+          setSyncStatus(`⚠️ Gagal Simpan (${(e && e.code) || 'Offline'})`, 'rgba(251, 113, 133, 0.16)', '#fb7185');
+        }
       }
     }
 
@@ -1789,7 +1877,9 @@
       setSyncStatus('⏳ Menghubungkan...', 'rgba(255, 255, 255, 0.06)', '#cbd5e1');
       unsubscribeSnapshot = fbFsFns.onSnapshot(
         cloudDocRef,
+        { includeMetadataChanges: true },
         (snap) => {
+          if (snap.metadata.hasPendingWrites) return;
           if (snap.exists()) {
             const data = snap.data();
             if (Array.isArray(data.allocations) && data.allocations.length > 0) {
@@ -1807,27 +1897,72 @@
               renderAllocDetailModal(activeDetailCategory);
             }
           }
-          setSyncStatus('☁️ Tersinkron', 'rgba(52, 211, 153, 0.14)', '#34d399');
+          if (snap.metadata.fromCache && !navigator.onLine) {
+            setSyncStatus('📴 Offline (Cache)', 'rgba(251, 191, 36, 0.14)', '#fbbf24');
+          } else {
+            setSyncStatus('☁️ Tersinkron', 'rgba(52, 211, 153, 0.14)', '#34d399');
+          }
         },
-        () => {
-          setSyncStatus('📴 Mode Lokal', 'rgba(255, 255, 255, 0.06)', '#cbd5e1');
+        (err) => {
+          console.error('Gagal dengar snapshot:', err);
+          if (err && err.code === 'permission-denied') {
+            setSyncStatus(
+              currentUser ? '⛔ Email Tidak Diizinkan' : '🔒 Perlu Login Google',
+              'rgba(251, 113, 133, 0.16)',
+              '#fb7185'
+            );
+          } else {
+            setSyncStatus(`⚠️ Putus (${(err && err.code) || 'Offline'})`, 'rgba(251, 113, 133, 0.16)', '#fb7185');
+          }
         }
       );
     }
 
     (async function initFirebase() {
       try {
-        const [appMod, fsMod] = await Promise.all([
-          import("https://www.gstatic.com/firebasejs/13.3.0/firebase-app.js"),
-          import("https://www.gstatic.com/firebasejs/13.3.0/firebase-firestore.js")
+        const [appMod, fsMod, authMod] = await Promise.all([
+          import("https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"),
+          import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js"),
+          import("https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js")
         ]);
         fbFsFns = fsMod;
+        fbAuthFns = authMod;
         const app = appMod.initializeApp(firebaseConfig);
-        db = fsMod.getFirestore(app);
+        db = fsMod.initializeFirestore(app, {
+          experimentalAutoDetectLongPolling: true
+        });
         cloudDocRef = fsMod.doc(db, 'jurnal_keluarga', 'utama');
-        startCloudSync();
+
+        auth = authMod.getAuth(app);
+        googleProvider = new authMod.GoogleAuthProvider();
+        googleProvider.setCustomParameters({ prompt: 'select_account' });
+
+        authMod.getRedirectResult(auth).catch((e) => {
+          console.error('Redirect login error:', e);
+        });
+
+        authMod.onAuthStateChanged(auth, (user) => {
+          updateAuthUI(user);
+          startCloudSync();
+        });
+
+        // Sambungkan ulang otomatis saat layar HP menyala, pindah tab, atau internet pulih
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') {
+            startCloudSync();
+          }
+        });
+        window.addEventListener('pageshow', (e) => {
+          if (e.persisted) {
+            startCloudSync();
+          }
+        });
+        window.addEventListener('online', () => {
+          startCloudSync();
+        });
       } catch (e) {
-        setSyncStatus('📴 Mode Lokal', 'rgba(255, 255, 255, 0.06)', '#cbd5e1');
+        console.error('Init Firebase gagal:', e);
+        setSyncStatus('⚠️ Gagal Muat SDK', 'rgba(251, 113, 133, 0.16)', '#fb7185');
       }
     })();
 
