@@ -542,6 +542,7 @@
     }
 
     /* Allocation Grid & Cards */
+    .allocation-grid[hidden] { display: none !important; }
     .allocation-grid {
       margin-top: 14px;
       display: grid;
@@ -1168,6 +1169,136 @@
       color: var(--text-muted);
     }
 
+
+    .kpi-clickable { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .kpi-clickable:focus-visible { outline: 2px solid var(--sky); outline-offset: 3px; }
+    .kpi-clickable::after {
+      content: 'Lihat rincian  ›';
+      margin-top: 7px;
+      color: var(--sky);
+      font-size: 0.68rem;
+      font-weight: 600;
+    }
+    .target-view-panel {
+      margin-top: 14px;
+      padding: 14px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      background: rgba(8, 13, 24, 0.42);
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 420ms cubic-bezier(.22,1,.36,1), transform 520ms cubic-bezier(.22,1,.36,1);
+      will-change: opacity, transform;
+    }
+    .target-view-panel.is-visible { opacity: 1; transform: translateY(0); }
+    .target-view-panel[hidden] { display: none; }
+    .target-pie-heading { margin: 0; font-size: .84rem; font-weight: 650; }
+    .target-pie-layout {
+      display: grid;
+      grid-template-columns: minmax(150px, .9fr) minmax(0, 1.1fr);
+      align-items: center;
+      gap: 16px;
+      margin-top: 12px;
+    }
+    .target-pie-wrap {
+      position: relative;
+      width: min(100%, 210px);
+      margin: 0 auto;
+      aspect-ratio: 1;
+    }
+    .target-pie {
+      cursor: pointer;
+      touch-action: manipulation;
+      width: 100%;
+      height: 100%;
+      aspect-ratio: 1;
+      margin: 0;
+      border-radius: 50%;
+      position: relative;
+      display: grid;
+      place-items: center;
+      background: conic-gradient(#334155 0deg 360deg);
+      outline: none;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+      box-shadow: 0 10px 28px rgba(0,0,0,.16);
+    }
+    .target-pie:focus { outline: none; }
+    .target-pie:focus-visible {
+      outline: 2px solid rgba(148,163,184,.72);
+      outline-offset: 5px;
+    }
+    .target-pie::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      pointer-events: none;
+      opacity: 0;
+      transform: scale(.985);
+      background: conic-gradient(from 0deg, transparent 0deg var(--selected-start, 0deg), rgba(255,255,255,.34) var(--selected-start, 0deg) var(--selected-end, 0deg), transparent var(--selected-end, 0deg) 360deg);
+      -webkit-mask: radial-gradient(circle, transparent 0 23.5%, #000 24.5% 100%);
+      mask: radial-gradient(circle, transparent 0 23.5%, #000 24.5% 100%);
+      transition: opacity 260ms ease, transform 360ms cubic-bezier(.2,.75,.25,1);
+    }
+    .target-pie.has-selection::after { opacity: 1; transform: scale(1); }
+    @media (prefers-reduced-motion: reduce) {
+      .target-view-panel, .target-pie::after, .target-pie-tooltip { transition-duration: .01ms !important; }
+    }
+    .target-pie::before {
+      content: '';
+      position: absolute;
+      inset: 24%;
+      border-radius: 50%;
+      background: #101827;
+      border: 1px solid rgba(255,255,255,.08);
+    }
+    .target-pie-center {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 4px;
+      max-width: 72%;
+    }
+    .target-pie-center small { display:block; color:var(--text-muted); font-size:.65rem; }
+    .target-pie-center strong { display:block; color:var(--text-primary); font-size:.88rem; line-height:1.25; overflow-wrap:anywhere; }
+    .target-pie-legend { display:flex; flex-direction:column; gap:9px; min-width:0; }
+    .target-pie-item { display:grid; grid-template-columns:10px minmax(0,1fr); gap:8px; align-items:start; font-size:.74rem; }
+    .target-pie-item-dot { width:9px; height:9px; border-radius:50%; margin-top:4px; }
+    .target-pie-item-name { color:var(--text-secondary); overflow-wrap:anywhere; }
+    .target-pie-item-value { color:var(--text-primary); font-weight:650; font-variant-numeric:tabular-nums; }
+    .target-pie-item.is-selected { padding:6px 8px; margin:-6px -8px; border-radius:9px; background:rgba(255,255,255,.07); }
+    .target-pie-side { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+    .target-pie-tooltip {
+      min-width: 0;
+      padding: 11px 12px;
+      border: 1px solid var(--border-subtle);
+      border-left: 3px solid var(--sky);
+      border-radius: 12px;
+      background: rgba(15, 23, 42, .72);
+      color: var(--text-primary);
+      opacity: 0;
+      transform: translateX(8px) scale(.985);
+      transition: opacity 360ms cubic-bezier(.22,1,.36,1), transform 420ms cubic-bezier(.22,1,.36,1);
+    }
+    .target-pie-tooltip.is-visible { opacity: 1; transform: translateX(0) scale(1); }
+    .target-pie-tooltip:empty { display: none; }
+    .target-pie-tooltip-title { display:flex; align-items:center; gap:7px; font-size:.76rem; font-weight:700; overflow-wrap:anywhere; }
+    .target-pie-tooltip-dot { width:9px; height:9px; flex:0 0 9px; border-radius:50%; }
+    .target-pie-tooltip-value { margin-top:4px; font-size:.72rem; line-height:1.4; color:var(--text-secondary); font-variant-numeric:tabular-nums; }
+    .summary-detail-list { margin-top:14px; display:flex; flex-direction:column; gap:9px; max-height:55vh; overflow:auto; }
+    .summary-detail-row { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; padding:11px 12px; border:1px solid var(--border-subtle); border-radius:var(--radius-md); background:rgba(255,255,255,.035); }
+    .summary-detail-main { min-width:0; flex:1; }
+    .summary-detail-note { font-size:.84rem; font-weight:650; color:var(--text-primary); overflow-wrap:anywhere; }
+    .summary-detail-meta { margin-top:3px; font-size:.7rem; color:var(--text-muted); overflow-wrap:anywhere; }
+    .summary-detail-amount { flex-shrink:0; font-size:.82rem; font-weight:700; white-space:nowrap; font-variant-numeric:tabular-nums; }
+    @media (max-width: 420px) {
+      .target-pie-layout { grid-template-columns: 1fr; }
+      .target-pie-wrap { width: min(68vw, 210px); }
+      .target-pie-legend { display:grid; grid-template-columns:1fr 1fr; }
+    }
+
     /* Subtle Custom Scrollbar */
     ::-webkit-scrollbar {
       width: 5px;
@@ -1188,6 +1319,29 @@
 <body>
   <!-- Toast Notifikasi -->
   <div id="toast" class="toast hidden"></div>
+
+
+  <div id="summary-detail-modal" class="modal-backdrop" aria-hidden="true">
+    <div class="modal-card modal-card-wide">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+        <div>
+          <h3 id="summary-detail-title" class="modal-title">Rincian Transaksi</h3>
+          <p id="summary-detail-subtitle" class="modal-desc">Detail sesuai periode yang dipilih</p>
+        </div>
+        <button id="summary-detail-close" type="button" class="btn btn-sm">Tutup</button>
+      </div>
+      <div class="detail-stats-grid">
+        <div class="detail-stat-box" style="grid-column:1 / -1;">
+          <div class="detail-stat-label">Total</div>
+          <div id="summary-detail-total" class="detail-stat-val tabular">Rp 0</div>
+        </div>
+      </div>
+      <div id="summary-detail-count" class="panel-sub" style="margin-top:12px;">0 transaksi</div>
+      <div id="summary-detail-list" class="summary-detail-list"></div>
+    </div>
+  </div>
+
+
 
   <!-- Modal Detail Pos Alokasi & Input Pengeluaran Langsung -->
   <div id="alloc-detail-modal" class="modal-backdrop" aria-hidden="true">
@@ -1453,7 +1607,7 @@
     <main class="container main-content">
       <!-- 4 KPI Summary Cards -->
       <section aria-label="Ringkasan Keuangan" class="summary-grid">
-        <div class="glass-panel kpi-card kpi-income">
+        <div class="glass-panel kpi-card kpi-income kpi-clickable" id="summary-income-card" role="button" tabindex="0" aria-label="Lihat rincian pemasukan">
           <div class="kpi-head">
             <p class="summary-label">Pemasukan</p>
             <span class="kpi-dot" style="background:var(--emerald);"></span>
@@ -1462,7 +1616,7 @@
           <p id="summary-income-count" class="summary-sub tabular">0 catatan</p>
         </div>
 
-        <div class="glass-panel kpi-card kpi-expense">
+        <div class="glass-panel kpi-card kpi-expense kpi-clickable" id="summary-expense-card" role="button" tabindex="0" aria-label="Lihat rincian pengeluaran">
           <div class="kpi-head">
             <p class="summary-label">Terpakai</p>
             <span class="kpi-dot" style="background:var(--rose);"></span>
@@ -1503,7 +1657,7 @@
               <span id="allocation-period-badge" class="period-badge">Bulan Terpilih</span>
               <div class="segmented-control">
                 <button type="button" data-chart-mode="real" class="chart-mode-btn active">Realisasi</button>
-                <button type="button" data-chart-mode="target" class="chart-mode-btn">Target</button>
+                <button type="button" id="target-open-btn" class="chart-mode-btn">Target</button>
               </div>
               <button id="add-alloc-btn" type="button" class="btn-primary btn-sm">+ Tambah Pos</button>
             </div>
@@ -1522,6 +1676,32 @@
             </div>
           </div>
 
+          <!-- Diagram target tetap berada di dalam kolom Alokasi -->
+  <!-- Tampilan Diagram Proporsi Target Alokasi (inline di panel alokasi) -->
+  <div id="target-view-panel" class="target-view-panel" hidden aria-label="Diagram proporsi target alokasi">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px;">
+      <div>
+        <h3 class="target-pie-heading">Proporsi Target Alokasi</h3>
+        <p class="modal-desc">Ketuk irisan warna untuk melihat rincian pos dana.</p>
+      </div>
+    </div>
+    <div class="target-pie-layout">
+      <div class="target-pie-wrap" id="target-pie-wrap">
+        <div id="target-pie" class="target-pie" role="button" tabindex="0" aria-label="Diagram target alokasi">
+          <div class="target-pie-center">
+            <small>Total target</small>
+            <strong id="target-pie-total">Rp 0</strong>
+          </div>
+        </div>
+      </div>
+      <div class="target-pie-side">
+        <div id="target-pie-tooltip" class="target-pie-tooltip" role="status" aria-live="polite"></div>
+        <div id="target-pie-legend" class="target-pie-legend">
+          <div class="empty-state">Tambahkan pos alokasi untuk melihat proporsinya.</div>
+        </div>
+      </div>
+    </div>
+  </div>
           <div id="allocation-grid" class="allocation-grid"></div>
         </section>
 
@@ -1658,6 +1838,21 @@
     const summaryBalance = document.getElementById('summary-balance');
     const summarySavingsRate = document.getElementById('summary-savings-rate');
     const listCount = document.getElementById('list-count');
+
+    const summaryDetailModal = document.getElementById('summary-detail-modal');
+    const summaryDetailTitle = document.getElementById('summary-detail-title');
+    const summaryDetailSubtitle = document.getElementById('summary-detail-subtitle');
+    const summaryDetailTotal = document.getElementById('summary-detail-total');
+    const summaryDetailCount = document.getElementById('summary-detail-count');
+    const summaryDetailList = document.getElementById('summary-detail-list');
+    const targetPie = document.getElementById('target-pie');
+    const targetPieTotal = document.getElementById('target-pie-total');
+    const targetPieLegend = document.getElementById('target-pie-legend');
+    const targetPieWrap = document.getElementById('target-pie-wrap');
+    const targetViewPanel = document.getElementById('target-view-panel');
+    const targetPieTooltip = document.getElementById('target-pie-tooltip');
+    let targetPieItems = [];
+
 
     // Referensi Modal Detail Pos & Input Cepat
     const allocDetailModal = document.getElementById('alloc-detail-modal');
@@ -2581,6 +2776,160 @@
         .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
     }
 
+
+    function renderTargetPieChart() {
+      const total = allocations.reduce((sum, item) => sum + Math.max(0, Number(item.budget) || 0), 0);
+      targetPieTotal.textContent = formatRupiah(total);
+      targetPieLegend.innerHTML = '';
+      targetPieItems = [];
+      targetPieTooltip.classList.remove('is-visible');
+      targetPieTooltip.innerHTML = '';
+      targetPie.classList.remove('has-selection');
+      targetPie.style.removeProperty('--selected-start');
+      targetPie.style.removeProperty('--selected-end');
+
+      const valid = allocations.filter((item) => (Number(item.budget) || 0) > 0);
+      if (!valid.length || total <= 0) {
+        targetPie.style.background = 'conic-gradient(#334155 0deg 360deg)';
+        const empty = document.createElement('div');
+        empty.className = 'empty-state';
+        empty.style.padding = '12px';
+        empty.textContent = 'Belum ada target alokasi. Tambahkan pos dan isi nominal target untuk melihat proporsi.';
+        targetPieLegend.appendChild(empty);
+        return;
+      }
+
+      let cursor = 0;
+      const segments = [];
+      valid.forEach((item) => {
+        const amount = Number(item.budget) || 0;
+        const degrees = amount / total * 360;
+        const start = cursor;
+        cursor += degrees;
+        segments.push(`${item.color || '#38bdf8'} ${start.toFixed(2)}deg ${cursor.toFixed(2)}deg`);
+        targetPieItems.push({ item, start, end: cursor, amount, color: item.color || '#38bdf8', percentage: amount / total * 100 });
+
+        const row = document.createElement('div');
+        row.className = 'target-pie-item';
+        row.dataset.targetId = String(item.id);
+        const dot = document.createElement('span');
+        dot.className = 'target-pie-item-dot';
+        dot.style.backgroundColor = item.color || '#38bdf8';
+        const content = document.createElement('div');
+        const name = document.createElement('div');
+        name.className = 'target-pie-item-name';
+        name.textContent = item.label || item.id;
+        const value = document.createElement('div');
+        value.className = 'target-pie-item-value';
+        value.textContent = `${formatRupiah(amount)} · ${(amount / total * 100).toFixed(1).replace('.', ',')}%`;
+        content.append(name, value);
+        row.append(dot, content);
+        targetPieLegend.appendChild(row);
+      });
+      targetPie.style.background = `conic-gradient(${segments.join(', ')})`;
+    }
+
+    function showTargetPieDetail(selected) {
+      if (!selected) return;
+      targetPieTooltip.innerHTML = '';
+      const title = document.createElement('div');
+      title.className = 'target-pie-tooltip-title';
+      const dot = document.createElement('span');
+      dot.className = 'target-pie-tooltip-dot';
+      dot.style.backgroundColor = selected.color;
+      const label = document.createElement('span');
+      label.textContent = selected.item.label || selected.item.id;
+      title.append(dot, label);
+      const value = document.createElement('div');
+      value.className = 'target-pie-tooltip-value';
+      value.textContent = `${formatRupiah(selected.amount)} · ${selected.percentage.toFixed(1).replace('.', ',')}% dari total target`;
+      targetPieTooltip.append(title, value);
+      targetPieTooltip.style.borderLeftColor = selected.color;
+      targetPieTooltip.classList.remove('is-visible');
+      requestAnimationFrame(() => targetPieTooltip.classList.add('is-visible'));
+      targetPieItems.forEach((part) => {
+        const row = targetPieLegend.querySelector(`[data-target-id="${CSS.escape(String(part.item.id))}"]`);
+        if (row) row.classList.toggle('is-selected', part.item.id === selected.item.id);
+      });
+      targetPie.style.setProperty('--selected-start', `${selected.start}deg`);
+      targetPie.style.setProperty('--selected-end', `${selected.end}deg`);
+      targetPie.classList.remove('has-selection');
+      requestAnimationFrame(() => targetPie.classList.add('has-selection'));
+    }
+
+    targetPie.addEventListener('keydown', (event) => {
+      if ((event.key === 'Enter' || event.key === ' ') && targetPieItems.length) {
+        event.preventDefault();
+        showTargetPieDetail(targetPieItems[0]);
+      }
+    });
+
+    targetPie.addEventListener('click', (event) => {
+      if (!targetPieItems.length) return;
+      const rect = targetPie.getBoundingClientRect();
+      const x = event.clientX - rect.left - rect.width / 2;
+      const y = event.clientY - rect.top - rect.height / 2;
+      const radius = Math.sqrt(x * x + y * y);
+      // Area tengah donut bukan irisan warna.
+      if (radius < Math.min(rect.width, rect.height) * 0.24) return;
+      let angle = (Math.atan2(y, x) * 180 / Math.PI + 90 + 360) % 360;
+      const selected = targetPieItems.find((part) => angle >= part.start && angle < part.end) || targetPieItems[targetPieItems.length - 1];
+      showTargetPieDetail(selected);
+    });
+
+    function openSummaryDetail(type) {
+      const periodEntries = getFilteredEntries(true).filter((entry) => entry.type === type);
+      const total = periodEntries.reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0);
+      const periodLabel = monthFilter.value === 'all' ? 'Semua Bulan' : formatMonthLabel(monthFilter.value);
+      summaryDetailTitle.textContent = type === 'income' ? 'Rincian Pemasukan' : 'Rincian Terpakai / Pengeluaran';
+      summaryDetailSubtitle.textContent = `Periode: ${periodLabel}`;
+      summaryDetailTotal.textContent = formatRupiah(total);
+      summaryDetailCount.textContent = `${periodEntries.length} transaksi`;
+      summaryDetailList.innerHTML = '';
+
+      if (!periodEntries.length) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-state';
+        empty.textContent = `Belum ada ${type === 'income' ? 'pemasukan' : 'pengeluaran'} pada periode ini.`;
+        summaryDetailList.appendChild(empty);
+      } else {
+        periodEntries.forEach((entry) => {
+          const row = document.createElement('div');
+          row.className = 'summary-detail-row';
+          const main = document.createElement('div');
+          main.className = 'summary-detail-main';
+          const note = document.createElement('div');
+          note.className = 'summary-detail-note';
+          note.textContent = entry.note || '(Tanpa keterangan)';
+          const meta = document.createElement('div');
+          meta.className = 'summary-detail-meta';
+          meta.textContent = `${formatDateIndo(entry.date)} · ${entry.category || 'Tanpa kategori'}${entry.inputStamp ? ` · Diinput ${entry.inputStamp}` : ''}`;
+          main.append(note, meta);
+          const amount = document.createElement('div');
+          amount.className = `summary-detail-amount ${type === 'income' ? 'text-emerald' : 'text-rose'}`;
+          amount.textContent = `${type === 'income' ? '+' : '−'} ${formatRupiah(entry.amount)}`;
+          row.append(main, amount);
+          summaryDetailList.appendChild(row);
+        });
+      }
+      openBackdrop(summaryDetailModal);
+    }
+
+    document.getElementById('summary-income-card').addEventListener('click', () => openSummaryDetail('income'));
+    document.getElementById('summary-expense-card').addEventListener('click', () => openSummaryDetail('expense'));
+    [document.getElementById('summary-income-card'), document.getElementById('summary-expense-card')].forEach((card) => {
+      card.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          card.click();
+        }
+      });
+    });
+    document.getElementById('summary-detail-close').addEventListener('click', () => closeBackdrop(summaryDetailModal));
+    summaryDetailModal.addEventListener('click', (event) => {
+      if (event.target === summaryDetailModal) closeBackdrop(summaryDetailModal);
+    });
+
     function renderAll() {
       updateMonthFilterOptions();
       populateCategoryOptions(entryTypeInput.value);
@@ -2634,6 +2983,7 @@
       allocOverviewBar.style.width = `${overviewBarPct}%`;
       allocOverviewBar.style.backgroundColor = totalExpense > totalBudget ? '#fb7185' : overviewPct >= 80 ? '#fbbf24' : '#10b981';
 
+      renderTargetPieChart();
       renderAllocationGrid(periodEntries);
       renderList();
       updateFormLimitPreview();
@@ -2978,14 +3328,26 @@
     typeFilter.addEventListener('change', renderList);
     searchInput.addEventListener('input', renderList);
 
-    chartModeBtns.forEach((btn) => {
-      btn.addEventListener('click', () => {
-        chartMode = btn.dataset.chartMode;
-        chartModeBtns.forEach((b) => {
-          b.classList.toggle('active', b.dataset.chartMode === chartMode);
-        });
-        renderAllocationGrid(getFilteredEntries(true));
-      });
+    const realModeBtn = document.querySelector('[data-chart-mode="real"]');
+    const targetModeBtn = document.getElementById('target-open-btn');
+    realModeBtn.addEventListener('click', () => {
+      chartMode = 'real';
+      realModeBtn.classList.add('active');
+      targetModeBtn.classList.remove('active');
+      targetViewPanel.classList.remove('is-visible');
+      window.setTimeout(() => { targetViewPanel.hidden = true; }, 430);
+      allocationGrid.hidden = false;
+      renderAllocationGrid(getFilteredEntries(true));
+    });
+
+    targetModeBtn.addEventListener('click', () => {
+      chartMode = 'target';
+      targetModeBtn.classList.add('active');
+      realModeBtn.classList.remove('active');
+      allocationGrid.hidden = true;
+      targetViewPanel.hidden = false;
+      renderTargetPieChart();
+      requestAnimationFrame(() => targetViewPanel.classList.add('is-visible'));
     });
 
     // Modal Unduh Grafik Batang JPG (HTML5 Canvas)
@@ -3191,6 +3553,7 @@
       if (isBackdropOpen(exportModal)) return closeExportModal();
       if (isBackdropOpen(entryModal)) return closeEntryModal();
       if (isBackdropOpen(allocDetailModal)) return closeAllocDetailModal();
+      if (isBackdropOpen(summaryDetailModal)) return closeBackdrop(summaryDetailModal);
     });
 
     // Inisialisasi Awal
